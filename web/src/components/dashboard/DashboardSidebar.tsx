@@ -126,8 +126,30 @@ export function DashboardSidebar({
 
   const selectedSatObj = satellites.find(s => s.name === satName) || (satellites.length > 0 ? satellites[0] : null);
 
+  const getDownlinkBand = (name: string) => {
+    if (name.includes('METEOR')) return '137.100 MHz';
+    if (name.includes('NOAA 19') || name.includes('NOAA 18')) return '137.9125 MHz';
+    if (name.includes('NOAA 15')) return '137.620 MHz';
+    if (name.includes('NavIC') || name.includes('IRNSS')) return '1176.45 MHz (L5)';
+    if (name.includes('ISS')) return '145.800 MHz';
+    return '137.100 MHz';
+  };
+
+  const getNextPassMinutes = () => {
+    if (!isConnected) return 'Offline';
+    if (loadingPass) return 'Computing...';
+    if (!pass || pass.maxElevation <= 0) return 'No pass in 48h';
+    const diffMs = new Date(pass.aos).getTime() - Date.now();
+    if (diffMs <= 0) return 'In Progress';
+    const mins = Math.round(diffMs / 60000);
+    if (mins < 60) return `in ${mins} min`;
+    const hrs = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    return `in ${hrs}h ${remMins}m`;
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5">
       {/* Notice Banner */}
       {notice && (
         <div
@@ -149,168 +171,121 @@ export function DashboardSidebar({
         </div>
       )}
 
-      {/* 1. Target Satellite Card */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-sky-50 border border-sky-100 text-sky-600">
-              <Satellite className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Target Satellite</h2>
-              <p className="text-[11px] text-slate-500">Mission Tracking Target</p>
-            </div>
-          </div>
-
-          {selectedSatObj && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 border border-sky-200">
-              {selectedSatObj.group || 'LEO'}
-            </span>
-          )}
-        </div>
-
-        {/* Satellite Dropdown */}
-        <div className="relative" ref={dropdownRef}>
-          <button
-            type="button"
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 bg-slate-50/80 hover:bg-slate-100/90 border border-slate-200 rounded-xl text-slate-900 font-bold text-sm transition-all cursor-pointer shadow-2xs"
-          >
-            <div className="flex items-center gap-2 truncate">
-              <Radio className="w-4 h-4 text-sky-600 shrink-0" />
-              <span className="truncate">
-                {satName || (selectedSatObj ? selectedSatObj.name : 'Select Satellite')}
-              </span>
-            </div>
-            <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          {dropdownOpen && (
-            <div className="absolute left-0 top-full mt-1.5 w-full bg-white border border-slate-200 rounded-xl shadow-xl py-1.5 z-50 max-h-72 overflow-y-auto">
-              <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Select Constellation / Satellite
-              </div>
-              {satellites.map((s) => (
-                <button
-                  key={s.noradId || s.name}
-                  type="button"
-                  onClick={() => handleSelectSat(s)}
-                  className={`w-full text-left px-3.5 py-2 text-xs font-semibold flex items-center justify-between hover:bg-sky-50 transition-colors cursor-pointer ${
-                    s.name === satName ? 'text-sky-700 bg-sky-50/70' : 'text-slate-700'
-                  }`}
-                >
-                  <span className="truncate">{s.name}</span>
-                  <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded ml-2 shrink-0">
-                    {s.group}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Selected Satellite Specs */}
-        {selectedSatObj && (
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5 text-xs">
-            <div className="flex items-center justify-between text-slate-600">
-              <span className="text-[11px] text-slate-500 font-medium">NORAD Catalog ID</span>
-              <span className="font-mono font-bold text-slate-900">{selectedSatObj.noradId}</span>
-            </div>
-            <div className="flex items-center justify-between text-slate-600">
-              <span className="text-[11px] text-slate-500 font-medium">Downlink Band</span>
-              <span className="font-mono font-bold text-slate-900">
-                {selectedSatObj.name.includes('METEOR') ? '137.100 MHz' :
-                 selectedSatObj.name.includes('NOAA') ? '137.620 MHz' :
-                 selectedSatObj.name.includes('NavIC') ? 'L5 / S-band' : 'VHF / UHF'}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Live Horizon / Visibility Status */}
-        <div className="p-3 rounded-xl border transition-colors">
-          {!isConnected ? (
-            <div className="flex items-center gap-2.5">
-              <WifiOff className="w-4 h-4 text-slate-400 shrink-0" />
-              <div>
-                <span className="text-xs font-bold text-slate-700 block">Tracker Disconnected</span>
-                <span className="text-[11px] text-slate-400">Offline status</span>
-              </div>
-            </div>
-          ) : !targetAngles ? (
-            <div className="flex items-center gap-2.5">
-              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-              <div>
-                <span className="text-xs font-bold text-slate-700 block">No Look Angles</span>
-                <span className="text-[11px] text-slate-500">Pick a satellite above</span>
-              </div>
-            </div>
-          ) : isVisible ? (
-            <div className="flex items-center gap-2.5 text-emerald-800">
-              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-              <div>
-                <span className="text-xs font-bold block">In Sky View (Above 10°)</span>
-                <span className="text-[11px] text-emerald-700">
-                  Target El: {targetAngles.elevation.toFixed(1)}° &bull; Az: {targetAngles.azimuth.toFixed(1)}°
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2.5 text-amber-800">
-              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-              <div>
-                <span className="text-xs font-bold block">Below Horizon (&lt; 10°)</span>
-                <span className="text-[11px] text-amber-700">
-                  Target El: {targetAngles.elevation.toFixed(1)}° &bull; Az: {targetAngles.azimuth.toFixed(1)}°
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Next Pass Quick Preview */}
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-          <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
-          <div className="text-xs">
-            <span className="text-[11px] font-semibold text-slate-500 block">Next Orbit Pass</span>
-            <span className="font-bold text-slate-900 block">
-              {!isConnected ? (
-                'Offline'
-              ) : loadingPass ? (
-                'Computing...'
-              ) : pass && pass.maxElevation > 0 ? (
-                `${new Date(pass.aos).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} UTC (Peak ${pass.maxElevation.toFixed(0)}°)`
-              ) : (
-                'No pass in next 48h'
-              )}
-            </span>
-          </div>
-        </div>
-
-        {/* Tracker Hardware Status */}
-        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs">
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-2.5 h-2.5 rounded-full ${
-                !isConnected
-                  ? 'bg-rose-500'
-                  : isTracking
-                  ? 'bg-emerald-500 animate-pulse'
-                  : 'bg-emerald-500'
-              }`}
+      {/* 1. Target Satellite Card (With Isometric Satellite Avatar) */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3.5">
+        <div className="flex items-center gap-3">
+          {/* Satellite Image Avatar */}
+          <div className="relative w-12 h-12 shrink-0 flex items-center justify-center p-1 rounded-xl bg-sky-50/60 border border-sky-100 shadow-2xs">
+            <img
+              src="/satellite-isometric.png"
+              alt="Satellite"
+              className="w-full h-full object-contain select-none"
             />
-            <span className="font-semibold text-slate-700">Tracker Hardware</span>
           </div>
-          <span className="font-bold text-slate-900">
-            {!isConnected
-              ? 'Offline'
-              : isTracking
-              ? 'Tracking'
-              : state === 'SLEWING'
-              ? 'Moving'
-              : 'Idle / Ready'}
+
+          {/* Satellite Selector Dropdown */}
+          <div className="flex-1 min-w-0 relative" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="w-full flex items-center justify-between gap-1 text-left group cursor-pointer"
+            >
+              <div className="min-w-0">
+                <div className="font-extrabold text-slate-900 text-sm sm:text-base group-hover:text-sky-600 transition-colors flex items-center gap-1">
+                  <span className="truncate">{satName || (selectedSatObj ? selectedSatObj.name : 'METEOR-M2 4')}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 group-hover:text-sky-600 shrink-0 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+                </div>
+                <div className="text-[11px] font-mono font-medium text-slate-500">
+                  NORAD {selectedSatObj?.noradId || '59851'}
+                </div>
+              </div>
+            </button>
+
+            {dropdownOpen && (
+              <div className="absolute left-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-xl py-1.5 z-50 max-h-72 overflow-y-auto">
+                <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Select Constellation / Satellite
+                </div>
+                {satellites.map((s) => (
+                  <button
+                    key={s.noradId || s.name}
+                    type="button"
+                    onClick={() => handleSelectSat(s)}
+                    className={`w-full text-left px-3.5 py-2 text-xs font-semibold flex items-center justify-between hover:bg-sky-50 transition-colors cursor-pointer ${
+                      s.name === (satName || 'METEOR-M2 4') ? 'text-sky-700 bg-sky-50/70 font-bold' : 'text-slate-700'
+                    }`}
+                  >
+                    <span className="truncate">{s.name}</span>
+                    <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded ml-2 shrink-0">
+                      {s.group}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Downlink Band */}
+        <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1.5 text-sky-600 font-semibold text-[11px]">
+            <Radio className="w-3.5 h-3.5" />
+            <span>Downlink Band</span>
+          </div>
+          <span className="font-mono font-bold text-slate-900 text-xs">
+            {getDownlinkBand(satName || selectedSatObj?.name || 'METEOR-M2 4')}
           </span>
+        </div>
+      </div>
+
+      {/* 2. Tracker Connected & Start Tracking Card */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3.5">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-slate-900">
+              <span
+                className={`w-2.5 h-2.5 rounded-full ${
+                  !isConnected
+                    ? 'bg-rose-500'
+                    : isTracking
+                    ? 'bg-emerald-500 animate-pulse'
+                    : 'bg-emerald-500'
+                }`}
+              />
+              <span>{isConnected ? 'Tracker Connected' : 'Tracker Disconnected'}</span>
+            </div>
+            <div className="text-[11px] text-slate-500 font-medium">
+              {!isConnected
+                ? 'Offline status: —'
+                : isTracking
+                ? `Tracking: ${satName || 'Active'}`
+                : 'Standby: Ready'}
+            </div>
+          </div>
+
+          {/* Sparkline Visual Graphic */}
+          <div className="w-16 h-8 shrink-0 flex items-center justify-end">
+            <svg viewBox="0 0 64 24" className="w-full h-full overflow-visible">
+              <path
+                d="M 2,16 Q 16,8 30,14 T 62,6"
+                fill="none"
+                stroke={isConnected ? '#10b981' : '#cbd5e1'}
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <path
+                d="M 2,16 Q 16,8 30,14 T 62,6 L 62,24 L 2,24 Z"
+                fill={isConnected ? 'url(#sparklineGrad)' : 'none'}
+                opacity="0.25"
+              />
+              <defs>
+                <linearGradient id="sparklineGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
         </div>
 
         {/* Primary Start / Stop Tracking Action Button */}
@@ -318,7 +293,7 @@ export function DashboardSidebar({
           type="button"
           onClick={handleToggleTracking}
           disabled={!isConnected || actionLoading}
-          className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed ${
+          className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm text-white flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed ${
             isTracking
               ? 'bg-amber-500 hover:bg-amber-600 active:bg-amber-700 shadow-amber-500/20'
               : 'bg-sky-500 hover:bg-sky-600 active:bg-sky-700 shadow-sky-500/20'
@@ -326,32 +301,49 @@ export function DashboardSidebar({
         >
           {isTracking ? (
             <>
-              <Pause className="w-4 h-4 fill-white" />
-              <span>{actionLoading ? 'Stopping...' : 'Stop Autonomous Tracking'}</span>
+              <Pause className="w-3.5 h-3.5 fill-white" />
+              <span>{actionLoading ? 'Stopping...' : 'Stop Tracking'}</span>
             </>
           ) : (
             <>
-              <Play className="w-4 h-4 fill-white" />
-              <span>{actionLoading ? 'Starting...' : 'Start Autonomous Tracking'}</span>
+              <Play className="w-3.5 h-3.5 fill-white" />
+              <span>{actionLoading ? 'Starting...' : 'Start Tracking'}</span>
             </>
           )}
         </button>
       </div>
 
-      {/* 2. Mission Station Observer Card */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm space-y-2.5 text-xs text-slate-600">
-        <div className="flex items-center gap-2 font-bold text-slate-900">
-          <Compass className="w-4 h-4 text-sky-600" />
-          <span>Ground Station Profile</span>
-        </div>
-        <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
-          <div className="p-2 rounded-lg bg-slate-50 border border-slate-200/70">
-            <span className="text-slate-400 block font-medium">Elevation Mask</span>
-            <span className="font-bold text-slate-800">10.0° (Horizon)</span>
+      {/* 3. Quick Info Card */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+        <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm">Quick Info</h3>
+        <div className="space-y-2.5 text-xs">
+          {/* Elevation Mask */}
+          <div className="flex items-center justify-between text-slate-600">
+            <span className="flex items-center gap-2 text-slate-500 text-[11px]">
+              <Compass className="w-3.5 h-3.5 text-sky-500" />
+              <span>Elevation Mask</span>
+            </span>
+            <span className="font-bold text-slate-900 text-xs font-mono">10.0° (Horizon)</span>
           </div>
-          <div className="p-2 rounded-lg bg-slate-50 border border-slate-200/70">
-            <span className="text-slate-400 block font-medium">Orbit Propagator</span>
-            <span className="font-bold text-slate-800">SGP4 / SDP4</span>
+
+          {/* Orbit Propagator */}
+          <div className="flex items-center justify-between text-slate-600">
+            <span className="flex items-center gap-2 text-slate-500 text-[11px]">
+              <Satellite className="w-3.5 h-3.5 text-sky-500" />
+              <span>Orbit Propagator</span>
+            </span>
+            <span className="font-bold text-slate-900 text-xs font-mono">SGP4 / SDP4</span>
+          </div>
+
+          {/* Next Pass */}
+          <div className="flex items-center justify-between text-slate-600">
+            <span className="flex items-center gap-2 text-slate-500 text-[11px]">
+              <Calendar className="w-3.5 h-3.5 text-sky-500" />
+              <span>Next Pass</span>
+            </span>
+            <span className="font-bold text-slate-900 text-xs font-mono">
+              {getNextPassMinutes()}
+            </span>
           </div>
         </div>
       </div>
