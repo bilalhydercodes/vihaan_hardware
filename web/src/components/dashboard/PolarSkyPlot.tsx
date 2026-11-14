@@ -125,11 +125,11 @@ function PolarSkyPlotComponent({
           <line x1={center} y1={center - maxRadius} x2={center} y2={center + maxRadius} stroke="#1e293b" strokeWidth="1.5" />
           <line x1={center - maxRadius} y1={center} x2={center + maxRadius} y2={center} stroke="#1e293b" strokeWidth="1.5" />
 
-          {/* Cardinal Direction Labels */}
-          <text x={center} y={center - maxRadius - 8} fill="#38bdf8" fontSize="13" fontWeight="bold" textAnchor="middle">North</text>
-          <text x={center + maxRadius + 18} y={center + 4} fill="#94a3b8" fontSize="12" textAnchor="middle">East</text>
-          <text x={center} y={center + maxRadius + 18} fill="#94a3b8" fontSize="12" textAnchor="middle">South</text>
-          <text x={center - maxRadius - 18} y={center + 4} fill="#94a3b8" fontSize="12" textAnchor="middle">West</text>
+          {/* Cardinal Direction Labels with safe padding */}
+          <text x={center} y={center - maxRadius - 14} fill="#38bdf8" fontSize="13" fontWeight="bold" textAnchor="middle">North</text>
+          <text x={center + maxRadius + 20} y={center + 4} fill="#94a3b8" fontSize="12" textAnchor="middle">East</text>
+          <text x={center} y={center + maxRadius + 20} fill="#94a3b8" fontSize="12" textAnchor="middle">South</text>
+          <text x={center - maxRadius - 20} y={center + 4} fill="#94a3b8" fontSize="12" textAnchor="middle">West</text>
 
           {/* Line Connecting Antenna Aim to Target Satellite */}
           <line
@@ -154,8 +154,8 @@ function PolarSkyPlotComponent({
             />
             <circle r="2.5" fill={satelliteVisible ? '#f59e0b' : '#94a3b8'} />
             <text
-              x="10"
-              y="-3"
+              x="12"
+              y="3"
               fill={satelliteVisible ? '#fbbf24' : '#94a3b8'}
               fontSize="11"
               fontWeight="bold"
@@ -165,15 +165,19 @@ function PolarSkyPlotComponent({
             </text>
           </g>
 
-          {/* Current Antenna Aim Marker */}
+          {/* Current Antenna Aim Marker (Crosshair showing where antenna is pointed) */}
           <g transform={`translate(${currentPos.x}, ${currentPos.y})`}>
             <circle r="12" fill="#06b6d4" fillOpacity="0.15" stroke="#06b6d4" strokeWidth="1.5" strokeDasharray="3 2" />
-            <line x1="-6" y1="0" x2="6" y2="0" stroke="#38bdf8" strokeWidth="1.5" />
-            <line x1="0" y1="-6" x2="0" y2="6" stroke="#38bdf8" strokeWidth="1.5" />
+            <line x1="-7" y1="0" x2="7" y2="0" stroke="#38bdf8" strokeWidth="1.5" />
+            <line x1="0" y1="-7" x2="0" y2="7" stroke="#38bdf8" strokeWidth="1.5" />
             <circle r="3" fill="#38bdf8" />
-            <text x="-8" y="-12" fill="#38bdf8" fontSize="11" fontWeight="bold" textAnchor="end">
-              Aim
-            </text>
+            {/* Position label below crosshair if near top to avoid overlapping 'North' */}
+            <g transform={currentPos.y < center - maxRadius + 30 ? "translate(0, 22)" : "translate(0, -16)"}>
+              <rect x="-16" y="-9" width="32" height="15" rx="4" fill="#020617" fillOpacity="0.85" stroke="#0284c7" strokeWidth="0.8" />
+              <text x="0" y="2" fill="#38bdf8" fontSize="10" fontWeight="bold" textAnchor="middle">
+                Aim
+              </text>
+            </g>
           </g>
         </svg>
       </div>
