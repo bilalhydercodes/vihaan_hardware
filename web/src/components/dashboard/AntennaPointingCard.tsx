@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { AngleCoordinates } from '@shared/types/tracker';
-import { Target, Info, Navigation, Radio } from '@/components/ui/icons';
+import { Target, Info, Navigation } from '@/components/ui/icons';
 
 interface AntennaPointingCardProps {
   current: AngleCoordinates | null;
@@ -13,6 +12,7 @@ interface AntennaPointingCardProps {
 
 export function AntennaPointingCard({ current, target, isConnected }: AntennaPointingCardProps) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   // Only display real values if connected and current angles exist
   const hasAngles = isConnected && current !== null && current !== undefined;
@@ -105,21 +105,31 @@ export function AntennaPointingCard({ current, target, isConnected }: AntennaPoi
         </div>
       </div>
 
-      {/* Antenna Dish Illustration with Unclipped Proportions & Dynamic Overlays */}
+      {/* Antenna Dish Illustration with Compressed Fast-Loading Image & Overlays */}
       <div className="relative w-full flex items-center justify-center py-4 select-none my-auto">
         <div className="relative w-[280px] h-[180px] flex items-center justify-center">
-          {/* Real Antenna Dish PNG (centered with comfortable bottom clearance) */}
+          {/* Compressed Antenna Dish (WebP with PNG fallback, 39KB, loads instantly) */}
           <div className="relative w-[160px] h-[140px] flex items-center justify-center mb-2">
-            <Image
-              src="/antenna-dish.png"
-              alt="Antenna Dish Rotator"
-              width={160}
-              height={140}
-              className={`object-contain drop-shadow-md select-none pointer-events-none transition-opacity ${
-                hasAngles ? 'opacity-100' : 'opacity-60'
-              }`}
-              priority
-            />
+            <picture>
+              <source srcSet="/antenna-dish.webp" type="image/webp" />
+              <img
+                src="/antenna-dish.png"
+                alt="Antenna Dish Rotator"
+                width={160}
+                height={140}
+                onLoad={() => setImgLoaded(true)}
+                className={`object-contain drop-shadow-md select-none pointer-events-none transition-all duration-300 ${
+                  imgLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                } ${hasAngles ? 'filter-none' : 'grayscale-[40%] contrast-90'}`}
+                loading="eager"
+                decoding="async"
+              />
+            </picture>
+            {!imgLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-2 border-sky-200 border-t-sky-500 animate-spin" />
+              </div>
+            )}
           </div>
 
           {/* SVG Overlay for Real Direction Indicators */}

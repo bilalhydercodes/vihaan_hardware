@@ -14,8 +14,8 @@ import {
   ChevronDown,
   WifiOff,
   Radio,
-  Target,
-  Compass
+  Compass,
+  X
 } from '@/components/ui/icons';
 
 interface DashboardSidebarProps {
@@ -35,6 +35,7 @@ export function DashboardSidebar({
   const [satellites, setSatellites] = useState<SatelliteInfo[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [notice, setNotice] = useState<{ text: string; type: 'error' | 'info' | 'success' } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isConnected = connectionStatus === 'connected';
@@ -42,6 +43,13 @@ export function DashboardSidebar({
   const state = telemetry?.state || status?.state || 'IDLE';
   const isTracking = state === 'TRACKING';
   const isVisible = telemetry?.isVisible ?? status?.isVisible ?? null;
+
+  const showNotice = (text: string, type: 'error' | 'info' | 'success' = 'info') => {
+    setNotice({ text, type });
+    setTimeout(() => {
+      setNotice(null);
+    }, 4500);
+  };
 
   // Load available satellites for dropdown
   useEffect(() => {
@@ -83,20 +91,21 @@ export function DashboardSidebar({
   const handleSelectSat = async (sat: SatelliteInfo) => {
     setDropdownOpen(false);
     if (!isConnected) {
-      alert('Tracker hardware is offline. Please switch on your tracker before commanding satellite selection.');
+      showNotice(`Offline: Target set to ${sat.name} (preview only). Connect tracker to aim hardware.`, 'info');
       return;
     }
     try {
       await trackerApi.selectSatellite({ name: sat.name, noradId: sat.noradId });
       await refreshStatus();
+      showNotice(`Target switched to ${sat.name}`, 'success');
     } catch (e: any) {
-      alert(`Could not select satellite: ${e.message}`);
+      showNotice(`Could not select satellite: ${e.message}`, 'error');
     }
   };
 
   const handleToggleTracking = async () => {
     if (!isConnected) {
-      alert('Tracker is offline. Please power on the tracker or start the local service first.');
+      showNotice('Tracker is offline. Please power on tracker hardware to track.', 'error');
       return;
     }
     if (!authToken) {
@@ -107,8 +116,9 @@ export function DashboardSidebar({
     try {
       await trackerApi.setTracking(isTracking ? 'STOP' : 'START');
       await refreshStatus();
+      showNotice(isTracking ? 'Tracking stopped' : 'Started tracking satellite', 'success');
     } catch (err: any) {
-      alert(`Tracking action failed: ${err.message}`);
+      showNotice(`Tracking action failed: ${err.message}`, 'error');
     } finally {
       setActionLoading(false);
     }
@@ -118,6 +128,27 @@ export function DashboardSidebar({
 
   return (
     <div className="space-y-4">
+      {/* Notice Banner */}
+      {notice && (
+        <div
+          className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-2 shadow-xs transition-all animate-fadeIn ${
+            notice.type === 'error'
+              ? 'bg-rose-50 border-rose-200 text-rose-800'
+              : notice.type === 'success'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              : 'bg-sky-50 border-sky-200 text-sky-800'
+          }`}
+        >
+          <span>{notice.text}</span>
+          <button
+            onClick={() => setNotice(null)}
+            className="p-1 hover:bg-black/5 rounded cursor-pointer shrink-0"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* 1. Target Satellite Card */}
       <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm space-y-4">
         {/* Header */}

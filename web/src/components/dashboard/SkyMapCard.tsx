@@ -29,10 +29,19 @@ export function SkyMapCard({
   const center = size / 2; // 190
   const maxRadius = center - 30; // 160 margin for N, E, S, W labels
 
-  // Convert (Azimuth, Elevation) to 2D coordinates for Polar Plot
-  const toXY = (az: number, el: number) => {
+  // Convert (Azimuth, Elevation) to 2D coordinates
+  // Polar: Equidistant projection r = R * (1 - el/90)
+  // Spherical: Orthographic hemisphere projection r = R * cos(el)
+  const getRadiusForElevation = (el: number) => {
     const clampedEl = Math.max(0, Math.min(90, el));
-    const r = maxRadius * (1 - clampedEl / 90.0);
+    if (mode === 'spherical') {
+      return maxRadius * Math.cos((clampedEl * Math.PI) / 180.0);
+    }
+    return maxRadius * (1 - clampedEl / 90.0);
+  };
+
+  const toXY = (az: number, el: number) => {
+    const r = getRadiusForElevation(el);
     const azRad = (az - 90) * (Math.PI / 180.0);
     const x = center + r * Math.cos(azRad);
     const y = center + r * Math.sin(azRad);
@@ -44,7 +53,9 @@ export function SkyMapCard({
 
   const currentPos = hasCurrent ? toXY(current!.azimuth, current!.elevation) : null;
   const targetPos = hasTarget ? toXY(target!.azimuth, target!.elevation) : null;
-  const maskRadius = maxRadius * (1 - minElevationMask / 90.0);
+  const maskRadius = getRadiusForElevation(minElevationMask);
+  const r30 = getRadiusForElevation(30);
+  const r60 = getRadiusForElevation(60);
   const isSatelliteUp = hasTarget ? (isVisible ?? (target!.elevation >= minElevationMask)) : false;
 
   // Angular offset between target and current aim
@@ -65,7 +76,9 @@ export function SkyMapCard({
           </div>
           <div>
             <h2 className="font-extrabold text-slate-900 text-lg tracking-tight">Sky Map (Hero View)</h2>
-            <p className="text-xs text-slate-500">Local topocentric radar pointing plot</p>
+            <p className="text-xs text-slate-500">
+              {mode === 'polar' ? 'Equidistant polar sky plot' : 'Orthographic spherical hemisphere view'}
+            </p>
           </div>
           <div className="relative">
             <button
@@ -78,8 +91,8 @@ export function SkyMapCard({
               <Info className="w-4 h-4" />
             </button>
             {showTooltip && (
-              <div className="absolute left-6 top-0 w-60 p-2.5 bg-slate-900 text-white text-[11px] rounded-xl shadow-xl z-20 pointer-events-none leading-relaxed">
-                Local topocentric sky view scaled 1.5x. Outer circle is 0° horizon; dashed circle is the 10° local elevation mask; center is 90° zenith.
+              <div className="absolute left-6 top-0 w-64 p-2.5 bg-slate-900 text-white text-[11px] rounded-xl shadow-xl z-20 pointer-events-none leading-relaxed">
+                Topocentric sky dome scaled 1.5x. Outer circle is 0° horizon; dashed line is the 10° local elevation mask; center is 90° zenith.
               </div>
             )}
           </div>
@@ -142,8 +155,8 @@ export function SkyMapCard({
               strokeDasharray="4 3"
             />
             <text
-              x={center + maskRadius - 4}
-              y={center - 4}
+              x={center + maskRadius - 6}
+              y={center - 6}
               fill="#d97706"
               fontSize="9"
               fontWeight="bold"
@@ -156,14 +169,14 @@ export function SkyMapCard({
             <circle
               cx={center}
               cy={center}
-              r={maxRadius * (2 / 3)}
+              r={r30}
               fill="none"
               stroke="#e2e8f0"
               strokeWidth="1.2"
             />
             <text
               x={center + 5}
-              y={center - maxRadius * (2 / 3) + 12}
+              y={center - r30 + 12}
               fill="#94a3b8"
               fontSize="9"
               fontWeight="semibold"
@@ -175,14 +188,14 @@ export function SkyMapCard({
             <circle
               cx={center}
               cy={center}
-              r={maxRadius * (1 / 3)}
+              r={r60}
               fill="none"
               stroke="#e2e8f0"
               strokeWidth="1.2"
             />
             <text
               x={center + 5}
-              y={center - maxRadius * (1 / 3) + 12}
+              y={center - r60 + 12}
               fill="#94a3b8"
               fontSize="9"
               fontWeight="semibold"
