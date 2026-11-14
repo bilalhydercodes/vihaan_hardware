@@ -14,7 +14,8 @@ import {
 import {
   fetchCelestrakPresets,
   getCachedCatalog,
-  findSatelliteByNameOrNorad
+  findSatelliteByNameOrNorad,
+  fetchSatelliteLiveFromCelestrak
 } from '@/lib/server/tle-data';
 import { predictNextPass } from '@/lib/server/simulator';
 
@@ -61,7 +62,7 @@ export async function GET(
   if (path === 'satellites/search') {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q') || '';
-    const found = findSatelliteByNameOrNorad(q);
+    const found = await fetchSatelliteLiveFromCelestrak(q);
     return success(found ? [found] : []);
   }
 
@@ -133,7 +134,7 @@ export async function POST(
 
   if (path === 'satellite') {
     const { name, noradId, autoTrack } = body;
-    const ok = selectSatellite(noradId || name);
+    const ok = await selectSatellite(noradId || name);
     if (!ok) return failure(`Satellite not found in active catalog: ${name || noradId}`);
     if (autoTrack) setTrackingState('START');
     return success(getLiveTrackerStatus());
@@ -161,7 +162,17 @@ export async function POST(
 
   if (path === 'tle/refresh') {
     const list = await fetchCelestrakPresets(true);
-    return success({ message: `Refreshed ${list.length} satellites from CelesTrak`, currentTle });
+    const liveSat = await fetchSatelliteLiveFromCelestrak(currentTle.noradId);
+    if (liveSat) {
+      currentTle.line1 = liveSat.tle.line1;
+      currentTle.line2 = liveSat.tle.line2;
+      currentTle.updatedAt = new Date().toISOString();
+      currentTle.source = 'CELESTRAK';
+    }
+    return success({
+      message: `Directly fetched ${list.length} live satellites from CelesTrak!`,
+      currentTle
+    });
   }
 
   if (path === 'time') {

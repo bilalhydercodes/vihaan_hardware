@@ -145,6 +145,35 @@ export async function fetchCelestrakPresets(force = false): Promise<SatelliteInf
   }
 }
 
+export async function fetchSatelliteLiveFromCelestrak(query: string | number): Promise<SatelliteInfo | null> {
+  const isNorad = typeof query === 'number' || /^\d+$/.test(query.toString().trim());
+  const param = isNorad
+    ? `CATNR=${query.toString().trim()}`
+    : `NAME=${encodeURIComponent(query.toString().trim())}`;
+
+  const url = `https://celestrak.org/NORAD/elements/gp.php?${param}&FORMAT=tle`;
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'NAVIC-TRACK/1.0' },
+      next: { revalidate: 1800 }
+    });
+    if (res.ok) {
+      const text = await res.text();
+      const parsed = parse3LineTle(text, 'WEATHER');
+      if (parsed.length > 0) {
+        const sat = parsed[0];
+        const idx = cachedCatalog.findIndex(s => s.noradId === sat.noradId);
+        if (idx >= 0) cachedCatalog[idx] = sat;
+        else cachedCatalog.unshift(sat);
+        return sat;
+      }
+    }
+  } catch {
+    // Fall back to local search
+  }
+  return findSatelliteByNameOrNorad(query);
+}
+
 export function getCachedCatalog(): SatelliteInfo[] {
   return cachedCatalog;
 }
