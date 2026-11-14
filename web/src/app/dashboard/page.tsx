@@ -6,8 +6,8 @@ import { trackerApi } from '@/lib/api';
 import { SatellitePass } from '@shared/types/tracker';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { SkyMapCard } from '@/components/dashboard/SkyMapCard';
-import { PassProfileCard } from '@/components/dashboard/PassProfileCard';
 import { AntennaPointingCard } from '@/components/dashboard/AntennaPointingCard';
+import { PassProfileCard } from '@/components/dashboard/PassProfileCard';
 import { UpcomingPassesCard } from '@/components/dashboard/UpcomingPassesCard';
 import { TelemetryGauges } from '@/components/dashboard/TelemetryGauges';
 
@@ -50,7 +50,7 @@ export default function DashboardPage() {
   }, [isConnected, status?.satelliteName, status?.noradId]);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-5">
+    <div className="w-full max-w-[1600px] mx-auto space-y-5">
       {/* 2-Column Dashboard Grid: Left Mission Sidebar + Main Hero Visualizations */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Left Mission Control Sidebar */}
@@ -65,9 +65,9 @@ export default function DashboardPage() {
 
         {/* Main Dashboard Visualization Area */}
         <main className="lg:col-span-8 xl:col-span-9 space-y-5">
-          {/* Row 1: Hero Sky Map (1.5x) + Pass Profile */}
+          {/* Row 1: Real-time Aim & Pointing (Sky Map + Antenna Pointing) */}
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
-            {/* 1.5x Hero Sky Map */}
+            {/* Topocentric Sky Map */}
             <div className="xl:col-span-7">
               <SkyMapCard
                 current={currentAngles}
@@ -78,23 +78,23 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* Pass Profile (Next Pass) */}
+            {/* Antenna Pointing Card (Switched with Pass Profile) */}
             <div className="xl:col-span-5">
-              <PassProfileCard
-                pass={pass}
-                loading={loadingPass}
+              <AntennaPointingCard
+                current={currentAngles}
+                target={targetAngles}
                 isConnected={isConnected}
               />
             </div>
           </div>
 
-          {/* Row 2: Antenna Pointing + Upcoming Passes Schedule */}
+          {/* Row 2: Orbit Trajectory & Pass Schedule (Pass Profile + Upcoming Passes) */}
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
-            {/* Antenna Pointing Card with Unclipped 3D Dish Illustration */}
+            {/* Pass Profile (Switched with Antenna Pointing) */}
             <div className="xl:col-span-6">
-              <AntennaPointingCard
-                current={currentAngles}
-                target={targetAngles}
+              <PassProfileCard
+                pass={pass}
+                loading={loadingPass}
                 isConnected={isConnected}
               />
             </div>

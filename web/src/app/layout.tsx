@@ -26,12 +26,12 @@ export default function RootLayout({
           <WelcomeBanner />
           <Navbar />
           <TokenModal />
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
             {children}
           </main>
           <JarvisAssistant />
           <footer className="border-t border-slate-200/80 bg-white mt-16 py-6 text-center text-sm text-slate-500">
-            <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="w-full max-w-[1600px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="font-medium text-slate-600">NAVIC-TRACK &bull; Autonomous 2-Axis Satellite Tracker</div>
               <div className="flex items-center gap-4 text-xs font-medium">
                 <Link href="/about" className="text-sky-600 hover:text-sky-700 underline">

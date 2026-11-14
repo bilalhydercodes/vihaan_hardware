@@ -28,7 +28,7 @@ export function WelcomeBanner() {
 
   return (
     <div className="bg-sky-50/90 border-b border-sky-200 text-slate-800 py-3 px-4 sm:px-6 relative shadow-xs">
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm">
+      <div className="w-full max-w-[1600px] mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm">
         <div className="flex items-center gap-3">
           <span className="text-xl" role="img" aria-label="wave">👋</span>
           <div>
