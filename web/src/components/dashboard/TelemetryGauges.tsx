@@ -12,7 +12,7 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
-  Satellite
+  WifiOff
 } from '@/components/ui/icons';
 
 interface TelemetryGaugesProps {
@@ -21,17 +21,22 @@ interface TelemetryGaugesProps {
 }
 
 export function TelemetryGauges({ telemetry, status }: TelemetryGaugesProps) {
-  const { syncTime } = useTracker();
+  const { syncTime, connectionStatus } = useTracker();
   const [showDetails, setShowDetails] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
-  const errorDeg = telemetry?.trackingErrorDeg ?? 0;
-  const pitch = telemetry?.imu.pitch ?? status?.imu.pitch ?? 0;
-  const isLevel = telemetry?.imu.isLevel ?? status?.imu.isLevel ?? true;
-  const timeSync = status?.timeSync ?? 'SYNCED';
+  const isConnected = connectionStatus === 'connected';
+  const errorDeg = telemetry?.trackingErrorDeg ?? null;
+  const pitch = isConnected ? (telemetry?.imu.pitch ?? status?.imu.pitch ?? 0) : null;
+  const isLevel = isConnected ? (telemetry?.imu.isLevel ?? status?.imu.isLevel ?? true) : null;
+  const timeSync = isConnected ? (status?.timeSync ?? 'SYNCED') : null;
 
   const handleSyncTime = async () => {
+    if (!isConnected) {
+      alert('Cannot sync time: Tracker hardware is offline.');
+      return;
+    }
     setIsSyncing(true);
     setSyncMsg(null);
     try {
@@ -75,7 +80,12 @@ export function TelemetryGauges({ telemetry, status }: TelemetryGaugesProps) {
           <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-1.5 shadow-2xs">
             <div className="text-xs font-semibold text-slate-500">Is the stand level?</div>
             <div className="flex items-center gap-2 pt-0.5">
-              {isLevel ? (
+              {!isConnected ? (
+                <>
+                  <WifiOff className="w-4 h-4 text-slate-400" />
+                  <span className="text-sm font-bold text-slate-500">— (Offline)</span>
+                </>
+              ) : isLevel ? (
                 <>
                   <CheckCircle className="w-4 h-4 text-emerald-500" />
                   <span className="text-sm font-bold text-slate-800">Yes, stand is level</span>
@@ -88,7 +98,9 @@ export function TelemetryGauges({ telemetry, status }: TelemetryGaugesProps) {
               )}
             </div>
             <p className="text-[11px] text-slate-500">
-              Internal IMU sensor tilt: ({Math.abs(pitch).toFixed(1)}°).
+              {isConnected && pitch !== null
+                ? `Internal IMU sensor tilt: (${Math.abs(pitch).toFixed(1)}°).`
+                : 'Sensor telemetry unavailable while offline.'}
             </p>
           </div>
 
@@ -96,12 +108,21 @@ export function TelemetryGauges({ telemetry, status }: TelemetryGaugesProps) {
           <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-1.5 shadow-2xs">
             <div className="text-xs font-semibold text-slate-500">Pointing Error</div>
             <div className="flex items-center gap-2 pt-0.5">
-              <span className={`text-base font-bold ${errorDeg <= 3 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                {errorDeg <= 1 ? 'Aim is directly on target' : `Off by ${errorDeg.toFixed(1)}°`}
-              </span>
+              {!isConnected || errorDeg === null ? (
+                <>
+                  <WifiOff className="w-4 h-4 text-slate-400" />
+                  <span className="text-sm font-bold text-slate-500">— (Offline)</span>
+                </>
+              ) : (
+                <span className={`text-base font-bold ${errorDeg <= 3 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {errorDeg <= 1 ? 'Aim is directly on target' : `Off by ${errorDeg.toFixed(1)}°`}
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-slate-500">
-              Antenna beam covers up to 10°, so small differences do not hurt reception.
+              {isConnected
+                ? 'Antenna beam covers up to 10°, so small differences do not hurt reception.'
+                : 'Connect tracker hardware to measure beam alignment.'}
             </p>
           </div>
 
@@ -109,13 +130,17 @@ export function TelemetryGauges({ telemetry, status }: TelemetryGaugesProps) {
           <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-2 shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-500">Internal Clock</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
-                {timeSync === 'SYNCED' ? 'On Time' : timeSync}
+              <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold border ${
+                !isConnected
+                  ? 'bg-slate-100 text-slate-500 border-slate-200'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              }`}>
+                {!isConnected ? 'Offline' : timeSync === 'SYNCED' ? 'On Time' : timeSync}
               </span>
             </div>
             <button
               onClick={handleSyncTime}
-              disabled={isSyncing}
+              disabled={isSyncing || !isConnected}
               className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 border border-slate-200 transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-sky-600 ${isSyncing ? 'animate-spin' : ''}`} />

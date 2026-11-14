@@ -4,12 +4,10 @@ import React, { useEffect, useState } from 'react';
 import { useTracker } from '@/context/TrackerContext';
 import { trackerApi } from '@/lib/api';
 import { SatellitePass } from '@shared/types/tracker';
-import { DashboardTopBar } from '@/components/dashboard/DashboardTopBar';
+import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { SkyMapCard } from '@/components/dashboard/SkyMapCard';
-import { GroundTrackCard } from '@/components/dashboard/GroundTrackCard';
 import { PassProfileCard } from '@/components/dashboard/PassProfileCard';
 import { AntennaPointingCard } from '@/components/dashboard/AntennaPointingCard';
-import { NextPassDetailsCard } from '@/components/dashboard/NextPassDetailsCard';
 import { UpcomingPassesCard } from '@/components/dashboard/UpcomingPassesCard';
 import { TelemetryGauges } from '@/components/dashboard/TelemetryGauges';
 
@@ -25,7 +23,6 @@ export default function DashboardPage() {
   const targetAngles = isConnected ? (telemetry?.targetAngles || status?.targetAngles || null) : null;
   const satName = status?.satelliteName || telemetry?.satelliteName || null;
   const isVisible = isConnected ? (telemetry?.isVisible ?? status?.isVisible ?? null) : null;
-  const satPos = isConnected ? (telemetry?.satellitePosition ?? status?.satellitePosition ?? null) : null;
 
   useEffect(() => {
     let isMounted = true;
@@ -38,7 +35,7 @@ export default function DashboardPage() {
         setLoadingPass(true);
         const data = await trackerApi.getPrediction();
         if (isMounted) setPass(data);
-      } catch (err) {
+      } catch {
         if (isMounted) setPass(null);
       } finally {
         if (isMounted) setLoadingPass(false);
@@ -53,65 +50,68 @@ export default function DashboardPage() {
   }, [isConnected, status?.satelliteName, status?.noradId]);
 
   return (
-    <div className="space-y-5 max-w-7xl mx-auto">
-      {/* 1. Dashboard Top Bar */}
-      <DashboardTopBar
-        pass={pass}
-        loadingPass={loadingPass}
-        targetAngles={targetAngles}
-      />
+    <div className="max-w-7xl mx-auto space-y-5">
+      {/* 2-Column Dashboard Grid: Left Mission Sidebar + Main Hero Visualizations */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Left Mission Control Sidebar */}
+        <aside className="lg:col-span-4 xl:col-span-3">
+          <DashboardSidebar
+            pass={pass}
+            loadingPass={loadingPass}
+            targetAngles={targetAngles}
+            currentAngles={currentAngles}
+          />
+        </aside>
 
-      {/* 2. Main Visualizations Row 1 (3 Columns) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
-        {/* Col 1: Sky Map */}
-        <SkyMapCard
-          current={currentAngles}
-          target={targetAngles}
-          satelliteName={satName}
-          isVisible={isVisible}
-          isConnected={isConnected}
-        />
+        {/* Main Dashboard Visualization Area */}
+        <main className="lg:col-span-8 xl:col-span-9 space-y-5">
+          {/* Row 1: Hero Sky Map (1.5x) + Pass Profile */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
+            {/* 1.5x Hero Sky Map */}
+            <div className="xl:col-span-7">
+              <SkyMapCard
+                current={currentAngles}
+                target={targetAngles}
+                satelliteName={satName}
+                isVisible={isVisible}
+                isConnected={isConnected}
+              />
+            </div>
 
-        {/* Col 2: Ground Track World Map */}
-        <GroundTrackCard
-          satPos={satPos}
-          satelliteName={satName}
-          isConnected={isConnected}
-        />
+            {/* Pass Profile (Next Pass) */}
+            <div className="xl:col-span-5">
+              <PassProfileCard
+                pass={pass}
+                loading={loadingPass}
+                isConnected={isConnected}
+              />
+            </div>
+          </div>
 
-        {/* Col 3: Pass Profile (Next Pass) */}
-        <PassProfileCard
-          pass={pass}
-          loading={loadingPass}
-          isConnected={isConnected}
-        />
+          {/* Row 2: Antenna Pointing + Upcoming Passes Schedule */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
+            {/* Antenna Pointing Card with Unclipped 3D Dish Illustration */}
+            <div className="xl:col-span-6">
+              <AntennaPointingCard
+                current={currentAngles}
+                target={targetAngles}
+                isConnected={isConnected}
+              />
+            </div>
+
+            {/* Upcoming Passes & Orbit Schedule */}
+            <div className="xl:col-span-6">
+              <UpcomingPassesCard
+                pass={pass}
+                loading={loadingPass}
+                isConnected={isConnected}
+              />
+            </div>
+          </div>
+        </main>
       </div>
 
-      {/* 3. Main Data Row 2 (3 Columns) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
-        {/* Col 1: Antenna Pointing with 3D Dish Rotator Illustration */}
-        <AntennaPointingCard
-          current={currentAngles}
-          target={targetAngles}
-          isConnected={isConnected}
-        />
-
-        {/* Col 2: Next Pass Card */}
-        <NextPassDetailsCard
-          pass={pass}
-          loading={loadingPass}
-          isConnected={isConnected}
-        />
-
-        {/* Col 3: Upcoming Passes Table */}
-        <UpcomingPassesCard
-          pass={pass}
-          loading={loadingPass}
-          isConnected={isConnected}
-        />
-      </div>
-
-      {/* 4. Collapsible Hardware Diagnostics (only shown if connected or upon user toggle) */}
+      {/* Hardware Diagnostics & Telemetry Gauges Drawer */}
       <TelemetryGauges telemetry={telemetry} status={status} />
     </div>
   );
