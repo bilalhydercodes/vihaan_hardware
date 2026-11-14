@@ -65,9 +65,9 @@ export default function DashboardPage() {
 
         {/* Main Dashboard Visualization Area: Expanded to fill remaining width */}
         <main className="flex-1 min-w-0 space-y-5">
-          {/* Row 1: Real-time Aim & Pointing (Earth View 67% + Antenna Pointing 33%) */}
+          {/* Row 1: Real-time Aim & Pointing + Pass Schedule (Earth View 67% + Right Column 33%) */}
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
-            {/* 3D Earth / Sky Map (Expanded to xl:col-span-8) */}
+            {/* 3D Earth / Sky Map (xl:col-span-8) */}
             <div className="xl:col-span-8">
               <SkyMapCard
                 current={currentAngles}
@@ -78,35 +78,32 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* Antenna Pointing Card (Compact xl:col-span-4) */}
-            <div className="xl:col-span-4">
-              <AntennaPointingCard
-                current={currentAngles}
-                target={targetAngles}
-                isConnected={isConnected}
-              />
+            {/* Right Column: Antenna Pointing (Top Half) + Pass Schedule (Bottom Half) */}
+            <div className="xl:col-span-4 flex flex-col gap-4 justify-between">
+              <div className="flex-1 min-h-0">
+                <AntennaPointingCard
+                  current={currentAngles}
+                  target={targetAngles}
+                  isConnected={isConnected}
+                />
+              </div>
+              <div className="flex-1 min-h-0">
+                <UpcomingPassesCard
+                  pass={pass}
+                  loading={loadingPass}
+                  isConnected={isConnected}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Row 2: Orbit Trajectory & Pass Schedule (Pass Profile + Upcoming Passes) */}
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
-            {/* Pass Profile (Switched with Antenna Pointing) */}
-            <div className="xl:col-span-6">
-              <PassProfileCard
-                pass={pass}
-                loading={loadingPass}
-                isConnected={isConnected}
-              />
-            </div>
-
-            {/* Upcoming Passes & Orbit Schedule */}
-            <div className="xl:col-span-6">
-              <UpcomingPassesCard
-                pass={pass}
-                loading={loadingPass}
-                isConnected={isConnected}
-              />
-            </div>
+          {/* Row 2: Orbit Trajectory Pass Profile (Full Width Widescreen Chart) */}
+          <div className="w-full">
+            <PassProfileCard
+              pass={pass}
+              loading={loadingPass}
+              isConnected={isConnected}
+            />
           </div>
         </main>
       </div>

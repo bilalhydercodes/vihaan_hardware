@@ -103,16 +103,16 @@ function Earth() {
 
   return (
     <group rotation={[0, -Math.PI / 2, 0]}>
-      {/* Photorealistic Solid Earth Sphere with Vibrant Brightness */}
+      {/* Photorealistic Solid Earth Sphere with Natural Cosmic Contrast */}
       <mesh>
         <sphereGeometry args={[R, 128, 128]} />
         <meshStandardMaterial
           map={earthTexture || undefined}
-          roughness={0.35}
-          metalness={0.08}
+          roughness={0.4}
+          metalness={0.06}
           color="#ffffff"
-          emissive="#0d2847"
-          emissiveIntensity={0.28}
+          emissive="#06182c"
+          emissiveIntensity={0.2}
         />
       </mesh>
 
@@ -122,24 +122,69 @@ function Earth() {
         <meshStandardMaterial
           map={cloudsTexture || undefined}
           transparent
-          opacity={0.38}
+          opacity={0.34}
           depthWrite={false}
           color="#ffffff"
         />
       </mesh>
 
-      {/* Atmospheric Glow */}
+      {/* Atmospheric Rim Glow */}
       <mesh>
         <sphereGeometry args={[R * 1.035, 96, 96]} />
         <meshBasicMaterial
           color="#38bdf8"
           transparent
-          opacity={0.25}
+          opacity={0.28}
           side={THREE.BackSide}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
     </group>
+  );
+}
+
+// Dynamic Multi-Depth Parallax Starfield Component
+function ParallaxSpaceBackground() {
+  const deepStars = useRef<THREE.Group>(null);
+  const midStars = useRef<THREE.Group>(null);
+  const clusterStars = useRef<THREE.Group>(null);
+
+  useFrame(({ pointer }) => {
+    // Parallax tracking: stars shift proportionally to mouse pointer coordinates
+    if (deepStars.current) {
+      deepStars.current.rotation.y += 0.00015;
+      deepStars.current.position.x = pointer.x * 0.15;
+      deepStars.current.position.y = pointer.y * 0.15;
+    }
+    if (midStars.current) {
+      midStars.current.rotation.y += 0.00035;
+      midStars.current.position.x = pointer.x * 0.35;
+      midStars.current.position.y = pointer.y * 0.35;
+    }
+    if (clusterStars.current) {
+      clusterStars.current.rotation.y += 0.0002;
+      clusterStars.current.position.x = pointer.x * 0.22;
+      clusterStars.current.position.y = pointer.y * 0.22;
+    }
+  });
+
+  return (
+    <>
+      {/* Deepest Distant Star Layer */}
+      <group ref={deepStars}>
+        <Stars radius={110} depth={60} count={2400} factor={4} fade speed={0.4} />
+      </group>
+
+      {/* Mid-Depth Parallax Star Layer */}
+      <group ref={midStars}>
+        <Stars radius={65} depth={30} count={900} factor={4.5} fade speed={0.8} />
+      </group>
+
+      {/* Cosmic Nebula Cluster Points */}
+      <group ref={clusterStars}>
+        <Stars radius={45} depth={20} count={280} factor={5.5} fade speed={1.2} />
+      </group>
+    </>
   );
 }
 
@@ -314,26 +359,30 @@ export default function EarthScene({
 
   return (
     <div
-      className="relative w-full h-full min-h-[480px] sm:min-h-[530px] lg:min-h-[560px] rounded-2xl overflow-hidden select-none bg-cover bg-center"
-      style={{ backgroundImage: "url('/space-starfield.png')" }}
+      className="relative w-full h-full min-h-[480px] sm:min-h-[530px] lg:min-h-[560px] rounded-2xl overflow-hidden select-none bg-[#020817]"
     >
-      {/* Soft atmospheric space vignette */}
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-slate-950/20 pointer-events-none" />
+      {/* Deep cosmic gradient vignette */}
+      <div
+        className="absolute inset-0 bg-cover bg-center opacity-45 pointer-events-none mix-blend-screen transition-transform duration-500 ease-out"
+        style={{ backgroundImage: "url('/space-starfield.png')" }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#020817] via-transparent to-[#020817]/60 pointer-events-none" />
 
       <Canvas
         camera={{ position: [0, 0.6, 4.0], fov: 44 }}
         gl={{ antialias: true, alpha: true }}
       >
-        {/* High-Luminosity Studio Lighting for Radiant Earth */}
-        <ambientLight intensity={2.4} />
-        <hemisphereLight args={['#ffffff', '#0f172a', 1.8]} />
-        <directionalLight position={[6, 4, 6]} intensity={3.8} />
-        <directionalLight position={[-6, 3, -4]} intensity={2.5} color="#93c5fd" />
-        <directionalLight position={[0, -5, 4]} intensity={1.5} color="#e0f2fe" />
-        <directionalLight position={[0, 1, 6]} intensity={2.0} />
+        <color attach="background" args={['#020817']} />
 
-        {/* Space Depth Stars */}
-        <Stars radius={80} depth={50} count={1800} factor={4} fade speed={0.4} />
+        {/* Cinematic Deep Space Lighting: High Day/Night Contrast & Radiant Sunlit Face */}
+        <ambientLight intensity={0.9} />
+        <hemisphereLight args={['#ffffff', '#020817', 0.6]} />
+        <directionalLight position={[7, 3, 5]} intensity={3.4} />
+        <directionalLight position={[-6, 2, -4]} intensity={1.2} color="#60a5fa" />
+        <directionalLight position={[0, -4, 3]} intensity={0.8} color="#0284c7" />
+
+        {/* Multi-Layered 3D Parallax Starfield & Cosmic Nebula Depth */}
+        <ParallaxSpaceBackground />
 
         {/* 3D Photorealistic Earth */}
         <Earth />
@@ -371,7 +420,7 @@ export default function EarthScene({
       {/* Floating 3D Interaction Tip Pill */}
       <div className="absolute top-3 left-3 z-10 bg-slate-950/70 backdrop-blur-md border border-white/10 px-2.5 py-1 rounded-lg text-slate-300 font-mono text-[10px] pointer-events-none flex items-center gap-1.5 shadow-sm">
         <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
-        <span>3D Earth &bull; Drag to rotate &bull; Scroll to zoom</span>
+        <span>3D Earth &bull; Drag to rotate &bull; Parallax Depth</span>
       </div>
 
       {/* Top-Right Active Satellite Indicator Pill */}

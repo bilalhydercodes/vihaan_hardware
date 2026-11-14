@@ -13,12 +13,12 @@ interface PassProfileCardProps {
 export function PassProfileCard({ pass, loading, isConnected }: PassProfileCardProps) {
   const [showTooltip, setShowTooltip] = useState(false);
 
-  const width = 420;
-  const height = 210;
+  const width = 820;
+  const height = 190;
   const paddingLeft = 44;
   const paddingBottom = 30;
   const paddingTop = 20;
-  const paddingRight = 20;
+  const paddingRight = 24;
 
   const chartWidth = width - paddingLeft - paddingRight;
   const chartHeight = height - paddingTop - paddingBottom;
