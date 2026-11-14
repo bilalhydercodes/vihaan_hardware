@@ -40,6 +40,13 @@ export interface TrackerStatus {
   targetAngles: AngleCoordinates;
   satelliteName: string | null;
   noradId: number | null;
+  satellitePosition?: {
+    latitude: number;
+    longitude: number;
+    altitudeKm: number;
+  };
+  isVisible?: boolean;
+  hardwareConnected?: boolean;
   imu: ImuOrientation;
   timeSync: TimeSyncStatus;
   lastTimeSync: string | null; // ISO 8601 string
@@ -54,6 +61,7 @@ export interface TrackerConfig {
     latitude: number;       // -90.0 to 90.0 degrees
     longitude: number;      // -180.0 to 180.0 degrees
     altitudeMeters: number; // Above sea level
+    minElevationMaskDeg?: number; // Minimum elevation angle to track (default 10.0°)
   };
   motion: {
     maxAzimuthSpeedDegS: number;      // Max slewing speed (< 5.0 deg/s for 28BYJ-48)
@@ -150,6 +158,8 @@ export interface LeanTelemetryPacket {
   imu: [number, number, 0 | 1];// IMU attitude [pitch, roll, isLevel (1/0)]
   sat?: string;               // Optional current satellite name abbreviation
   rssi?: number;              // Wi-Fi RSSI (dBm)
+  vis?: 0 | 1;                // Satellite above elevation mask (1 = visible)
+  pos?: [number, number, number]; // [lat, lon, altKm] sub-satellite point
 }
 
 // Client-friendly expanded telemetry structure (hydrated from LeanTelemetryPacket)
@@ -162,6 +172,12 @@ export interface TelemetryData {
   trackingErrorDeg: number;
   imu: ImuOrientation;
   satelliteName: string | null;
+  satellitePosition?: {
+    latitude: number;
+    longitude: number;
+    altitudeKm: number;
+  };
+  isVisible?: boolean;
   rssi?: number;
 }
 
@@ -175,13 +191,15 @@ export interface SatellitePass {
   durationSeconds: number;
   aosAzimuth: number;
   losAzimuth: number;
+  elevationMaskDeg?: number;
+  isVisibleNow?: boolean;
 }
 
 // Pre-configured satellite item (loaded from TLEs or Celestrak catalog)
 export interface SatelliteInfo {
   name: string;
   noradId: number;
-  group: 'NAVIC' | 'GPS' | 'LEO' | 'CUSTOM';
+  group: 'WEATHER' | 'NAVIC' | 'GPS' | 'LEO' | 'CUSTOM';
   tle: {
     line1: string;
     line2: string;

@@ -64,6 +64,29 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   return body.data as T;
 }
 
+export interface JarvisVoiceStatusData {
+  available: boolean;
+  stt: { available: boolean; backend: string; formats?: string[]; reason?: string };
+  tts: { available: boolean; backend: string; voice_id?: string; speed?: number; reason?: string };
+}
+
+export interface JarvisChatResult {
+  reply: string;
+  toolCall?: { name: string; arguments: Record<string, any> } | null;
+  toolResult?: any;
+  toolSummary?: string | null;
+  online: boolean;
+  sessionId: string;
+  source: string;
+}
+
+export interface JarvisTranscribeResult {
+  text: string;
+  language: string;
+  confidence: number;
+  duration: number;
+}
+
 export const trackerApi = {
   // Status
   async getStatus(): Promise<TrackerStatus> {
@@ -105,6 +128,12 @@ export const trackerApi = {
     return request<TleData>('/api/v1/tle', {
       method: 'POST',
       body: JSON.stringify(payload)
+    });
+  },
+
+  async refreshTle(): Promise<{ message: string; updatedAt: string; source: string; currentTle: TleData }> {
+    return request<{ message: string; updatedAt: string; source: string; currentTle: TleData }>('/api/v1/tle/refresh', {
+      method: 'POST'
     });
   },
 
@@ -152,8 +181,92 @@ export const trackerApi = {
     return request<SatelliteInfo[]>('/api/v1/satellites');
   },
 
+  async searchSatellites(query: string): Promise<SatelliteInfo[]> {
+    return request<SatelliteInfo[]>(`/api/v1/satellites/search?q=${encodeURIComponent(query)}`);
+  },
+
   async getPrediction(): Promise<SatellitePass | null> {
     return request<SatellitePass | null>('/api/v1/prediction');
+  },
+
+  // JARVIS AI Flight Director & Voice Assistant
+  async getJarvisStatus(): Promise<{ online: boolean; tools: string[]; details?: any }> {
+    return request<{ online: boolean; tools: string[]; details?: any }>('/api/v1/jarvis/status');
+  },
+
+  async getJarvisVoiceStatus(): Promise<{
+    available: boolean;
+    stt: { available: boolean; backend: string; formats?: string[]; reason?: string };
+    tts: { available: boolean; backend: string; voice_id?: string; speed?: number; reason?: string };
+  }> {
+    return request<any>('/api/v1/jarvis/voice/status');
+  },
+
+  async sendJarvisMessage(message: string, sessionId = 'web-session', history: Array<{ role: string; content: string }> = []): Promise<{
+    reply: string;
+    toolCall?: { name: string; arguments: Record<string, any> } | null;
+    toolResult?: any;
+    toolSummary?: string | null;
+    online: boolean;
+    sessionId: string;
+    source: string;
+  }> {
+    return request<any>('/api/v1/jarvis/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message, sessionId, history })
+    });
+  },
+
+  async transcribeAudio(audioBlob: Blob, language = 'en-US'): Promise<{
+    text: string;
+    language: string;
+    confidence: number;
+    duration: number;
+  }> {
+    const url = `${BASE_URL}/api/v1/jarvis/voice/transcribe`;
+    const token = getStoredAuthToken();
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio.wav');
+    formData.append('language', language);
+
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Audio transcription failed');
+    }
+    return data.data;
+  },
+
+  async synthesizeSpeech(text: string, voice = 'en-GB-RyanNeural', speed = 1.0): Promise<Blob> {
+    const url = `${BASE_URL}/api/v1/jarvis/voice/synthesize`;
+    const token = getStoredAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ text, voice, speed })
+    });
+
+    if (!res.ok) {
+      throw new Error(`Speech synthesis failed: HTTP ${res.status}`);
+    }
+    return await res.blob();
   }
 };
 

@@ -7,12 +7,10 @@ import { TelemetryGauges } from '@/components/dashboard/TelemetryGauges';
 import { NextPassCard } from '@/components/dashboard/NextPassCard';
 import {
   Compass,
-  Satellite,
-  Radio,
   CheckCircle,
   AlertTriangle,
-  Clock,
-  Activity
+  Wifi,
+  WifiOff
 } from '@/components/ui/icons';
 
 export default function DashboardPage() {
@@ -20,84 +18,98 @@ export default function DashboardPage() {
 
   const currentAngles = telemetry?.currentAngles || status?.currentAngles || { azimuth: 120.0, elevation: 45.0 };
   const targetAngles = telemetry?.targetAngles || status?.targetAngles || { azimuth: 120.0, elevation: 45.0 };
-  const satName = status?.satelliteName || telemetry?.satelliteName || 'NavIC-1B';
+  const satName = status?.satelliteName || telemetry?.satelliteName || 'NavIC Satellite';
   const state = telemetry?.state || status?.state || 'IDLE';
 
-  return (
-    <div className="space-y-6">
-      {/* Header bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
-              <Compass className="w-6 h-6 text-cyan-400" />
-              Live Telemetry & Tracking Dashboard
-            </h1>
-            <span
-              className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase ${
-                state === 'TRACKING'
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 animate-pulse'
-                  : state === 'SLEWING'
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 animate-pulse'
-                  : 'bg-slate-800 text-slate-300'
-              }`}
-            >
-              {state}
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Real-time dual-axis antenna look angles, polar sky-plot projection, and SGP4 trajectory error
-          </p>
-        </div>
+  const isConnected = connectionStatus === 'connected';
+  const isTracking = state === 'TRACKING';
+  const isMoving = state === 'SLEWING';
+  const isVisible = telemetry?.isVisible ?? status?.isVisible ?? false;
 
-        {/* Quick Uptime & Health */}
-        <div className="flex items-center gap-3 text-xs font-mono">
-          <div className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-            <span className="text-slate-500">UPTIME: </span>
-            <strong className="text-white">
-              {status ? `${Math.floor(status.uptimeSeconds / 60)}m ${status.uptimeSeconds % 60}s` : '--'}
-            </strong>
+  return (
+    <div className="space-y-6 max-w-5xl mx-auto">
+      {/* Friendly Status Sentence Banner */}
+      <div className={`p-4 sm:p-5 rounded-2xl border transition-all ${
+        !isConnected
+          ? 'bg-rose-950/40 border-rose-500/40 text-rose-200'
+          : isTracking && isVisible
+          ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+          : isTracking && !isVisible
+          ? 'bg-amber-950/40 border-amber-500/40 text-amber-200'
+          : isMoving
+          ? 'bg-cyan-950/40 border-cyan-500/40 text-cyan-200'
+          : 'bg-slate-900 border-slate-800 text-slate-200'
+      }`}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {!isConnected ? (
+              <WifiOff className="w-6 h-6 text-rose-400 shrink-0" />
+            ) : isTracking && isVisible ? (
+              <CheckCircle className="w-6 h-6 text-emerald-400 shrink-0" />
+            ) : isTracking && !isVisible ? (
+              <AlertTriangle className="w-6 h-6 text-amber-400 shrink-0" />
+            ) : isMoving ? (
+              <Compass className="w-6 h-6 text-cyan-400 animate-spin shrink-0" />
+            ) : (
+              <Compass className="w-6 h-6 text-slate-400 shrink-0" />
+            )}
+            <div>
+              <div className="text-lg sm:text-xl font-bold">
+                {!isConnected
+                  ? 'Not connected. Check that the tracker is switched on.'
+                  : isTracking && isVisible
+                  ? `Tracking ${satName}. Aim is good & satellite is in sky.`
+                  : isTracking && !isVisible
+                  ? `Following ${satName}. Satellite is currently below horizon (elevation < 10°).`
+                  : isMoving
+                  ? `Adjusting position to aim at ${satName}...`
+                  : 'Tracker is ready. Press Start Tracking to follow a satellite.'}
+              </div>
+              <div className="text-xs sm:text-sm text-slate-300">
+                {!isConnected
+                  ? 'Make sure your computer or phone is on the same local network as the tracker.'
+                  : isTracking && isVisible
+                  ? 'The antenna is actively moving with the satellite in real time.'
+                  : isTracking && !isVisible
+                  ? 'The rotator is waiting at the horizon, and will automatically track when the satellite rises.'
+                  : 'You can change the target satellite anytime from the control page.'}
+              </div>
+            </div>
           </div>
-          <div className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-            <span className="text-slate-500">FW: </span>
-            <strong className="text-cyan-400">{status?.firmwareVersion || '1.0.0'}</strong>
+
+          <div className="shrink-0 text-xs font-semibold px-3 py-1 rounded-full bg-slate-950/60 border border-slate-800">
+            {isConnected ? 'Status: Online' : 'Status: Offline'}
           </div>
         </div>
       </div>
 
-      {/* Main Top Row: Polar Sky Plot & Next Pass Card */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Polar Sky Plot (7 cols) */}
+      {/* Main Row: Simple Sky Map + Target Satellite Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Sky Map (7 cols) */}
         <div className="lg:col-span-7">
           <PolarSkyPlot
             current={currentAngles}
             target={targetAngles}
             satelliteName={satName}
             state={state}
+            isVisible={isVisible}
           />
         </div>
 
-        {/* Satellite & Pass Info (5 cols) */}
+        {/* Target & Tracking Card (5 cols) */}
         <div className="lg:col-span-5">
           <NextPassCard />
         </div>
       </div>
 
-      {/* Numerical Gauges & Sensor Status */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-white font-mono flex items-center gap-2">
-            <Activity className="w-4 h-4 text-cyan-400" />
-            Axis Angles & Environmental Telemetry
-          </h2>
-          <span className="text-xs text-slate-500 font-mono">
-            Rate-limited at ~1 Hz from ESP32
-          </span>
-        </div>
-
+      {/* Numerical Direction Angles & Collapsed Details */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <Compass className="w-5 h-5 text-cyan-400" />
+          Where the Antenna is Pointing
+        </h2>
         <TelemetryGauges telemetry={telemetry} status={status} />
       </div>
     </div>
   );
 }
-

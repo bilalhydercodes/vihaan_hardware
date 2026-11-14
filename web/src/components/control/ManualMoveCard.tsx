@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { AngleCoordinates } from '@shared/types/tracker';
 import { trackerApi } from '@/lib/api';
 import { useTracker } from '@/context/TrackerContext';
-import { Compass, Radio, Sliders, AlertTriangle } from '@/components/ui/icons';
+import { Compass, Radio, Sliders, AlertTriangle, ChevronDown, ChevronUp } from '@/components/ui/icons';
 import { ConfirmModal } from './ConfirmModal';
 
 interface ManualMoveCardProps {
@@ -20,12 +20,13 @@ export function ManualMoveCard({ disabled, disabledReason, onError, onSuccess }:
   const curAz = telemetry?.currentAngles.azimuth ?? status?.currentAngles.azimuth ?? 0;
   const curEl = telemetry?.currentAngles.elevation ?? status?.currentAngles.elevation ?? 0;
 
+  const [isOpen, setIsOpen] = useState(false); // Collapsed by default
   const [targetAz, setTargetAz] = useState<number>(180);
   const [targetEl, setTargetEl] = useState<number>(45);
   const [speed, setSpeed] = useState<number>(3.5);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Large Move Confirmation Dialog state
+  // Large Move Confirmation Dialog state (>30°)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const calculateDelta = (az: number, el: number) => {
@@ -43,9 +44,9 @@ export function ManualMoveCard({ disabled, disabledReason, onError, onSuccess }:
         speedDegS: speed
       });
       await refreshStatus();
-      onSuccess(`Commanded slewing to Az: ${targetAz.toFixed(1)}°, El: ${targetEl.toFixed(1)}° at ${speed} deg/s`);
+      onSuccess(`Moving antenna to Left/Right: ${targetAz.toFixed(0)}°, Up/Down: ${targetEl.toFixed(0)}°`);
     } catch (err: any) {
-      onError(err.message || 'Motor move rejected by tracker');
+      onError(`Could not move motors: ${err.message}. Check your token.`);
     } finally {
       setIsSubmitting(false);
       setIsConfirmOpen(false);
@@ -58,21 +59,21 @@ export function ManualMoveCard({ disabled, disabledReason, onError, onSuccess }:
 
     // Validate client-side limits
     if (targetAz < 0 || targetAz > 360) {
-      onError('Azimuth angle out of bounds: must be between 0.0 and 360.0 degrees');
+      onError('Left/Right direction must be between 0° and 360°');
       return;
     }
     if (targetEl < 0 || targetEl > 90) {
-      onError('Elevation angle out of bounds: must be between 0.0 and 90.0 degrees');
+      onError('Up/Down angle must be between 0° and 90°');
       return;
     }
     if (speed <= 0 || speed > 5.0) {
-      onError('Slewing speed exceeds safe stepper limits (max 5.0 deg/s)');
+      onError('Speed must be between 0.5°/s and 5.0°/s to avoid motor stall');
       return;
     }
 
+    // Check if move is > 30 degrees
     const delta = calculateDelta(targetAz, targetEl);
     if (delta > 30.0) {
-      // Require confirmation for moves larger than 30 degrees
       setIsConfirmOpen(true);
     } else {
       handleExecuteMove();
@@ -84,226 +85,160 @@ export function ManualMoveCard({ disabled, disabledReason, onError, onSuccess }:
     setTargetEl(el);
   };
 
-  const deltaDeg = calculateDelta(targetAz, targetEl);
+  const currentDelta = calculateDelta(targetAz, targetEl);
 
   return (
     <>
-      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-              <Compass className="w-5 h-5" />
+      <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden transition-all">
+        {/* Collapsible Header */}
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full flex items-center justify-between p-5 sm:p-6 text-left hover:bg-slate-800/40 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-slate-800 text-slate-300">
+              <Sliders className="w-5 h-5 text-cyan-400" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white font-mono">Manual Jog / Angle Command</h3>
-              <p className="text-xs text-slate-400">Command mount to fixed topocentric Azimuth & Elevation</p>
+              <div className="text-base font-bold text-white flex items-center gap-2">
+                <span>Advanced: Manual Aiming</span>
+                <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-normal">Optional</span>
+              </div>
+              <div className="text-xs text-slate-400">
+                Point the antenna directly to any custom angle yourself.
+              </div>
             </div>
           </div>
-          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-            Current: {curAz.toFixed(1)}° / {curEl.toFixed(1)}°
-          </span>
-        </div>
 
-        {/* Quick Angle Presets */}
-        <div className="mb-4">
-          <span className="text-[10px] font-mono uppercase text-slate-400 block mb-1.5">Quick Presets</span>
-          <div className="flex flex-wrap gap-1.5 text-xs font-mono">
-            <button
-              type="button"
-              onClick={() => setPreset(0, 0)}
-              disabled={disabled}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 rounded border border-slate-700 transition-colors"
-            >
-              Park (0°, 0°)
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreset(0, 45)}
-              disabled={disabled}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 rounded border border-slate-700 transition-colors"
-            >
-              North (0°, 45°)
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreset(90, 45)}
-              disabled={disabled}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 rounded border border-slate-700 transition-colors"
-            >
-              East (90°, 45°)
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreset(180, 45)}
-              disabled={disabled}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 rounded border border-slate-700 transition-colors"
-            >
-              South (180°, 45°)
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreset(270, 45)}
-              disabled={disabled}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 rounded border border-slate-700 transition-colors"
-            >
-              West (270°, 45°)
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreset(curAz, 90)}
-              disabled={disabled}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-cyan-300 rounded border border-cyan-800 transition-colors"
-            >
-              Zenith (90° El)
-            </button>
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+            <span>{isOpen ? 'Hide' : 'Show'}</span>
+            {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </div>
-        </div>
+        </button>
 
-        <form onSubmit={onSubmitForm} className="space-y-4">
-          {/* Azimuth Axis Slider & Input */}
-          <div className="bg-slate-950/70 border border-slate-800/80 rounded-lg p-3.5 space-y-2">
-            <div className="flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-300 font-semibold flex items-center gap-1.5">
-                <Compass className="w-4 h-4 text-cyan-400" />
-                Azimuth Angle (0.0° – 360.0°)
-              </span>
-              <div className="flex items-center gap-1">
+        {/* Collapsed Body */}
+        {isOpen && (
+          <div className="p-5 sm:p-6 pt-0 border-t border-slate-800/80 space-y-5">
+            {/* Quick Aim Presets */}
+            <div className="space-y-2 pt-4">
+              <span className="text-xs font-semibold text-slate-300 block">Quick Direction Presets</span>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { label: 'Parked (0°, 0°)', az: 0, el: 0 },
+                  { label: 'North (0°, 45°)', az: 0, el: 45 },
+                  { label: 'East (90°, 45°)', az: 90, el: 45 },
+                  { label: 'South (180°, 45°)', az: 180, el: 45 },
+                  { label: 'West (270°, 45°)', az: 270, el: 45 },
+                  { label: 'Straight Up (90°)', az: curAz, el: 90 },
+                ].map((p, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setPreset(p.az, p.el)}
+                    disabled={disabled}
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-xs font-medium text-slate-200 border border-slate-700 transition-colors cursor-pointer"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <form onSubmit={onSubmitForm} className="space-y-4">
+              {/* Left/Right Direction Slider */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-medium">
+                  <span className="text-slate-300 flex items-center gap-1.5">
+                    <Compass className="w-4 h-4 text-cyan-400" /> Left / Right Direction (0° to 360°)
+                  </span>
+                  <span className="text-base font-bold text-cyan-300 font-mono">{targetAz}°</span>
+                </div>
                 <input
-                  type="number"
+                  type="range"
                   min="0"
                   max="360"
-                  step="0.5"
+                  step="1"
                   value={targetAz}
-                  onChange={(e) => setTargetAz(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setTargetAz(Number(e.target.value))}
                   disabled={disabled}
-                  className="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-right font-mono text-cyan-300 text-sm focus:border-cyan-500 focus:outline-none"
+                  className="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-cyan-400 disabled:opacity-50"
                 />
-                <span className="text-slate-400 font-bold">°</span>
               </div>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="360"
-              step="0.5"
-              value={targetAz}
-              onChange={(e) => setTargetAz(parseFloat(e.target.value))}
-              disabled={disabled}
-              className="w-full accent-cyan-400 cursor-pointer disabled:opacity-50"
-            />
-            <div className="flex justify-between text-[10px] font-mono text-slate-500">
-              <span>0° (North)</span>
-              <span>90° (East)</span>
-              <span>180° (South)</span>
-              <span>270° (West)</span>
-              <span>360°</span>
-            </div>
-          </div>
 
-          {/* Elevation Axis Slider & Input */}
-          <div className="bg-slate-950/70 border border-slate-800/80 rounded-lg p-3.5 space-y-2">
-            <div className="flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-300 font-semibold flex items-center gap-1.5">
-                <Radio className="w-4 h-4 text-emerald-400" />
-                Elevation Angle (0.0° – 90.0°)
-              </span>
-              <div className="flex items-center gap-1">
+              {/* Up/Down Angle Slider */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-medium">
+                  <span className="text-slate-300 flex items-center gap-1.5">
+                    <Radio className="w-4 h-4 text-emerald-400" /> Up / Down Angle (0° to 90°)
+                  </span>
+                  <span className="text-base font-bold text-emerald-300 font-mono">{targetEl}°</span>
+                </div>
                 <input
-                  type="number"
+                  type="range"
                   min="0"
                   max="90"
-                  step="0.5"
+                  step="1"
                   value={targetEl}
-                  onChange={(e) => setTargetEl(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setTargetEl(Number(e.target.value))}
                   disabled={disabled}
-                  className="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-right font-mono text-emerald-300 text-sm focus:border-cyan-500 focus:outline-none"
+                  className="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-emerald-400 disabled:opacity-50"
                 />
-                <span className="text-slate-400 font-bold">°</span>
               </div>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="90"
-              step="0.5"
-              value={targetEl}
-              onChange={(e) => setTargetEl(parseFloat(e.target.value))}
-              disabled={disabled}
-              className="w-full accent-emerald-400 cursor-pointer disabled:opacity-50"
-            />
-            <div className="flex justify-between text-[10px] font-mono text-slate-500">
-              <span>0° (Horizon)</span>
-              <span>30°</span>
-              <span>60°</span>
-              <span>90° (Zenith)</span>
-            </div>
-          </div>
 
-          {/* Slewing Speed Input */}
-          <div className="flex items-center justify-between bg-slate-950/70 border border-slate-800/80 rounded-lg p-3 text-xs font-mono">
-            <span className="text-slate-400 flex items-center gap-1.5">
-              <Sliders className="w-3.5 h-3.5 text-amber-400" />
-              Slewing Speed Limit:
-            </span>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min="0.5"
-                max="5.0"
-                step="0.5"
-                value={speed}
-                onChange={(e) => setSpeed(parseFloat(e.target.value) || 1)}
-                disabled={disabled}
-                className="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-right font-mono text-amber-300 text-xs focus:outline-none"
-              />
-              <span className="text-slate-400">°/s (Max 5.0°/s)</span>
-            </div>
-          </div>
+              {/* Speed slider */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-medium">
+                  <span className="text-slate-300">Movement Speed (degrees per second)</span>
+                  <span className="text-xs font-mono text-slate-300">{speed} °/s (Max 5.0)</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="5.0"
+                  step="0.5"
+                  value={speed}
+                  onChange={(e) => setSpeed(Number(e.target.value))}
+                  disabled={disabled}
+                  className="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-cyan-400 disabled:opacity-50"
+                />
+                <p className="text-[11px] text-slate-500">
+                  Keeping speed under 5°/s prevents stepper motors from skipping steps.
+                </p>
+              </div>
 
-          {/* Delta Warning Badge if > 30 deg */}
-          {deltaDeg > 30 && (
-            <div className="p-2.5 rounded bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-              <span>
-                Large angular slew detected (<strong className="font-mono text-amber-300">Δ {deltaDeg.toFixed(1)}°</strong>). A confirmation prompt will be required.
-              </span>
-            </div>
-          )}
+              {/* Large Move Notice */}
+              {currentDelta > 30.0 && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>Large turn ({currentDelta.toFixed(0)}°): A confirmation prompt will ask before motors move.</span>
+                </div>
+              )}
 
-          {/* Submit Button */}
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={disabled || isSubmitting}
-              className="w-full py-2.5 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:pointer-events-none text-slate-950 font-bold font-mono text-xs rounded-lg transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Compass className="w-4 h-4 text-slate-950" />
-              {isSubmitting ? 'Commanding Motor Slew...' : `Move to Az: ${targetAz.toFixed(1)}°, El: ${targetEl.toFixed(1)}°`}
-            </button>
+              {/* Submit Move Button */}
+              <button
+                type="submit"
+                disabled={disabled || isSubmitting}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold text-sm transition-all cursor-pointer disabled:cursor-not-allowed"
+              >
+                <Compass className="w-4 h-4" />
+                <span>{isSubmitting ? 'Sending command...' : `Move to ${targetAz}°, ${targetEl}°`}</span>
+              </button>
+            </form>
           </div>
-        </form>
+        )}
       </div>
 
-      {/* Confirmation Modal for Large Moves */}
+      {/* Confirmation Dialog for Moves > 30 Degrees */}
       <ConfirmModal
         isOpen={isConfirmOpen}
-        title="Confirm Large Angle Movement"
-        message="You are commanding a large angular movement exceeding 30 degrees. Verify that the antenna patch cable has sufficient slack and that the rotation path is unobstructed."
-        confirmLabel="Execute Move"
-        cancelLabel="Abort Move"
+        title="Confirm Large Antenna Move"
+        message={`You are asking the tracker to rotate by ${currentDelta.toFixed(0)}° (Left/Right: ${targetAz}°, Up/Down: ${targetEl}°). Ensure antenna cables are not tangled before moving.`}
+        confirmLabel="Yes, Move Antenna"
         variant="warning"
-        details={
-          <>
-            <div>Current Position: <strong className="text-white">{curAz.toFixed(1)}° Az, {curEl.toFixed(1)}° El</strong></div>
-            <div>Commanded Target: <strong className="text-cyan-300">{targetAz.toFixed(1)}° Az, {targetEl.toFixed(1)}° El</strong></div>
-            <div>Angular Displacement: <strong className="text-amber-400">{deltaDeg.toFixed(1)}°</strong></div>
-            <div>Slewing Speed: <strong className="text-white">{speed} deg/s</strong></div>
-          </>
-        }
         onConfirm={handleExecuteMove}
         onCancel={() => setIsConfirmOpen(false)}
       />
     </>
   );
 }
-

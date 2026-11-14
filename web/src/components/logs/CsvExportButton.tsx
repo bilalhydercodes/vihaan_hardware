@@ -54,10 +54,10 @@ export function CsvExportButton({ logs }: CsvExportButtonProps) {
     <button
       onClick={handleExportCsv}
       disabled={logs.length === 0}
-      className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:pointer-events-none text-slate-950 font-bold font-mono text-xs rounded-lg transition-all shadow-md shadow-cyan-500/20 cursor-pointer"
+      className="flex items-center gap-2 px-4 py-2.5 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:pointer-events-none text-slate-950 font-bold text-sm rounded-xl transition-all shadow-md cursor-pointer"
     >
       <Download className="w-4 h-4" />
-      <span>Export CSV ({logs.length} Rows)</span>
+      <span>Download as Spreadsheet ({logs.length})</span>
     </button>
   );
 }

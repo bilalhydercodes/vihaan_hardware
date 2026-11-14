@@ -56,29 +56,32 @@ function AngleHistoryChartComponent({ logs }: AngleHistoryChartProps) {
     <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-3">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
         <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider">
-            Commanded vs Actual Angle History (Time-Series)
-          </h3>
+          <Activity className="w-5 h-5 text-cyan-400" />
+          <div>
+            <h3 className="text-base font-bold text-white">
+              Antenna Aim Accuracy Over Time
+            </h3>
+            <p className="text-xs text-slate-400">Shows commanded satellite position vs where the antenna actually pointed.</p>
+          </div>
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap items-center gap-4 text-[11px] font-mono">
+        <div className="flex flex-wrap items-center gap-4 text-xs">
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-1 bg-cyan-400 rounded-full" />
-            <span className="text-slate-300">Actual Azimuth</span>
+            <span className="w-3 h-1.5 bg-cyan-400 rounded-full" />
+            <span className="text-slate-200">Actual Left/Right</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-0.5 border-b border-dashed border-amber-400" />
-            <span className="text-amber-300">Target Az</span>
+            <span className="w-3 h-0.5 border-b-2 border-dashed border-amber-400" />
+            <span className="text-amber-300">Target Left/Right</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-1 bg-emerald-400 rounded-full" />
-            <span className="text-slate-300">Actual Elevation</span>
+            <span className="w-3 h-1.5 bg-emerald-400 rounded-full" />
+            <span className="text-slate-200">Actual Up/Down</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-0.5 border-b border-dashed border-amber-400" />
-            <span className="text-amber-300">Target El</span>
+            <span className="w-3 h-0.5 border-b-2 border-dashed border-amber-400" />
+            <span className="text-amber-300">Target Up/Down</span>
           </div>
         </div>
       </div>

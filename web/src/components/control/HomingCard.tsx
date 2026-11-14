@@ -27,24 +27,36 @@ export function HomingCard({ disabled, disabledReason, onError, onSuccess }: Hom
     try {
       const res = await trackerApi.home('ALL');
       await refreshStatus();
-      onSuccess(res.message || 'Homing calibration sequence initiated against mechanical limit switches');
+      onSuccess(res.message || 'Position reset started! The mount is moving to its starting limit stops.');
     } catch (err: any) {
-      onError(err.message || 'Homing command rejected');
+      onError(`Could not reset position: ${err.message}. Check your token.`);
     } finally {
       setIsHomingLoading(false);
       setIsConfirmHomeOpen(false);
     }
   };
 
-  const handleToggleTracking = async () => {
+  const handleStartTracking = async () => {
     setIsTrackingLoading(true);
     try {
-      const action = isTracking ? 'STOP' : 'START';
-      await trackerApi.setTracking(action);
+      await trackerApi.setTracking('START');
       await refreshStatus();
-      onSuccess(action === 'START' ? 'Autonomous satellite tracking started' : 'Tracking stopped. Motors holding position.');
+      onSuccess('Started tracking satellite!');
     } catch (err: any) {
-      onError(err.message || 'Tracking toggle failed');
+      onError(`Could not start tracking: ${err.message}`);
+    } finally {
+      setIsTrackingLoading(false);
+    }
+  };
+
+  const handleStopTracking = async () => {
+    setIsTrackingLoading(true);
+    try {
+      await trackerApi.setTracking('STOP');
+      await refreshStatus();
+      onSuccess('Stopped tracking. Antenna is holding its current position.');
+    } catch (err: any) {
+      onError(`Could not stop tracking: ${err.message}`);
     } finally {
       setIsTrackingLoading(false);
     }
@@ -52,92 +64,77 @@ export function HomingCard({ disabled, disabledReason, onError, onSuccess }: Hom
 
   return (
     <>
-      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
-              <HomeIcon className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-white font-mono">Homing & Autonomous State</h3>
-              <p className="text-xs text-slate-400">Mechanical endstop calibration and tracking engagement</p>
-            </div>
-          </div>
-          <span
-            className={`text-[11px] font-mono px-2 py-0.5 rounded font-bold ${
-              isHomed ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
-            }`}
-          >
-            {isHomed ? 'HOMED & CALIBRATED' : 'UN-HOMED'}
-          </span>
+      <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-5">
+        <div>
+          <h2 className="text-lg font-bold text-white">Main Tracker Controls</h2>
+          <p className="text-xs text-slate-300">Start tracking, stop motors, or reset the antenna back to its home angle.</p>
         </div>
 
-        <div className="p-3.5 bg-slate-950/70 border border-slate-800/80 rounded-lg text-xs text-slate-300 space-y-2">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-            <p className="leading-relaxed">
-              Homing rotates both Azimuth and Elevation axes toward physical limit switches (GPIO 32 & 33) to zero the internal step counters. Ensure the mount has a clear rotational swing before initiating.
-            </p>
-          </div>
-        </div>
+        {/* Big Action Buttons Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* 1. Start / Stop Button */}
+          {isTracking ? (
+            <button
+              onClick={handleStopTracking}
+              disabled={disabled || isTrackingLoading}
+              className="flex items-center justify-center gap-2.5 px-6 py-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold text-base shadow-lg transition-all cursor-pointer disabled:cursor-not-allowed"
+            >
+              <Pause className="w-5 h-5 fill-slate-950" />
+              <span>{isTrackingLoading ? 'Stopping...' : 'Stop Tracking'}</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleStartTracking}
+              disabled={disabled || isTrackingLoading}
+              className="flex items-center justify-center gap-2.5 px-6 py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold text-base shadow-lg transition-all cursor-pointer disabled:cursor-not-allowed"
+            >
+              <Play className="w-5 h-5 fill-slate-950" />
+              <span>{isTrackingLoading ? 'Starting...' : 'Start Tracking'}</span>
+            </button>
+          )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-          {/* Start/Stop Tracking Toggle */}
+          {/* 2. Reset Position Button */}
           <button
-            type="button"
-            onClick={handleToggleTracking}
-            disabled={disabled || isTrackingLoading}
-            className={`py-2.5 px-4 rounded-lg font-mono font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg ${
-              isTracking
-                ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20'
-                : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
-            } disabled:opacity-50 disabled:pointer-events-none`}
+            onClick={() => setIsConfirmHomeOpen(true)}
+            disabled={disabled || isHomingLoading}
+            className="flex items-center justify-center gap-2.5 px-6 py-4 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-white font-bold text-base border border-slate-700 shadow-md transition-all cursor-pointer disabled:cursor-not-allowed"
           >
-            {isTracking ? (
+            <HomeIcon className="w-5 h-5 text-amber-400" />
+            <span>{isHomingLoading ? 'Resetting...' : 'Reset Position'}</span>
+          </button>
+        </div>
+
+        {/* Status info line */}
+        <div className="flex items-center justify-between text-xs text-slate-300 pt-2 border-t border-slate-800">
+          <div className="flex items-center gap-2">
+            {isHomed ? (
               <>
-                <Pause className="w-4 h-4 fill-slate-950" />
-                {isTrackingLoading ? 'Halting...' : 'Halt SGP4 Tracking'}
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Starting angles are calibrated and ready.</span>
               </>
             ) : (
               <>
-                <Play className="w-4 h-4 fill-slate-950" />
-                {isTrackingLoading ? 'Starting...' : 'Engage SGP4 Tracking'}
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Starting angles not set yet. Press Reset Position.</span>
               </>
             )}
-          </button>
-
-          {/* Home Button with Confirmation Dialog */}
-          <button
-            type="button"
-            onClick={() => setIsConfirmHomeOpen(true)}
-            disabled={disabled || isHomingLoading}
-            className="py-2.5 px-4 rounded-lg font-mono font-bold text-xs bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
-          >
-            <HomeIcon className="w-4 h-4 text-amber-400" />
-            {isHomingLoading ? 'Homing in progress...' : 'Execute Homing Routine'}
-          </button>
+          </div>
+          <span className="text-slate-400 hidden sm:inline">
+            Status: <strong className="text-white">{status?.state === 'SLEWING' ? 'Moving' : status?.state === 'HOMING' ? 'Resetting' : status?.state || 'Ready'}</strong>
+          </span>
         </div>
       </div>
 
-      {/* Confirmation Modal for Homing */}
+      {/* Confirmation Dialog for Reset Position */}
       <ConfirmModal
         isOpen={isConfirmHomeOpen}
-        title="Confirm Axis Homing Routine"
-        message="This will immediately drive both the Azimuth and Elevation motors to physical endstop switches to calibrate zero reference points. Please confirm the antenna rotation path is unobstructed."
-        confirmLabel="Initiate Homing"
-        cancelLabel="Cancel"
-        variant="warning"
-        details={
-          <>
-            <div>Axis Target: <strong className="text-white">ALL (Azimuth & Elevation)</strong></div>
-            <div>Speed Profile: <strong className="text-white">Slow calibration creep (2.5 deg/s)</strong></div>
-            <div>Endstops: <strong className="text-amber-400">Az Home (GPIO 32), El Min (GPIO 33)</strong></div>
-          </>
-        }
+        title="Reset Antenna Position?"
+        message="This will slowly move both motors until they touch the physical limit switches to recalibrate 0° starting angles. The antenna cannot be aimed while resetting."
+        confirmLabel="Yes, Reset Position"
+        variant="danger"
         onConfirm={handleExecuteHome}
         onCancel={() => setIsConfirmHomeOpen(false)}
       />
     </>
   );
 }
-

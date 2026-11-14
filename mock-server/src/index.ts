@@ -22,9 +22,26 @@ import {
 import {
   getCachedCatalog,
   fetchCelestrakPresets,
-  findSatelliteByNameOrNorad
+  findSatelliteByNameOrNorad,
+  fetchSatelliteFromCelestrak
 } from './tle-data.js';
 import { predictNextPass } from './simulator.js';
+import {
+  checkJarvisHealth,
+  sendJarvisMessage,
+  generateJarvisAudio,
+  checkJarvisVoiceStatus,
+  transcribeAudioBuffer
+} from './jarvis/client.js';
+import multer from 'multer';
+import {
+  JARVIS_TOOLS,
+  executeJarvisTool
+} from './jarvis/tools.js';
+
+const upload = multer({
+  limits: { fileSize: 15 * 1024 * 1024 } // 15MB audio payload limit
+});
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
@@ -90,6 +107,9 @@ app.post('/api/v1/config', authMiddleware, (req: Request, res: Response) => {
     if (typeof observer.altitudeMeters === 'number') {
       trackerConfig.observer.altitudeMeters = observer.altitudeMeters;
     }
+    if (typeof observer.minElevationMaskDeg === 'number') {
+      trackerConfig.observer.minElevationMaskDeg = Math.max(0, Math.min(45, observer.minElevationMaskDeg));
+    }
   }
 
   if (motion) {
@@ -126,29 +146,54 @@ app.post('/api/v1/config', authMiddleware, (req: Request, res: Response) => {
 });
 
 // 4. POST /api/v1/satellite (Auth required)
-app.post('/api/v1/satellite', authMiddleware, (req: Request, res: Response) => {
+app.post('/api/v1/satellite', authMiddleware, async (req: Request, res: Response) => {
   const { name, noradId, autoTrack } = req.body;
   const target = noradId || name;
   if (!target) {
     return errorResponse(res, 'Missing satellite name or noradId');
   }
 
-  const ok = selectSatellite(target, !!autoTrack);
+  const ok = await selectSatellite(target, !!autoTrack);
   if (!ok) {
-    return errorResponse(res, `Satellite '${target}' not found in catalog or TLE storage`);
+    return errorResponse(res, `Satellite '${target}' not found in catalog or CelesTrak database`);
   }
 
   return successResponse(res, {
     satelliteName: trackerStatus.satelliteName,
     noradId: trackerStatus.noradId,
     targetAngles: trackerStatus.targetAngles,
-    state: trackerStatus.state
+    state: trackerStatus.state,
+    satellitePosition: trackerStatus.satellitePosition,
+    isVisible: trackerStatus.isVisible
   });
 });
 
 // 5. GET /api/v1/tle
 app.get('/api/v1/tle', (req: Request, res: Response) => {
   return successResponse(res, currentTle);
+});
+
+// 5b. POST /api/v1/tle/refresh (Auth required - force fresh CelesTrak download)
+app.post('/api/v1/tle/refresh', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const result = await fetchCelestrakPresets(true);
+    // If active satellite is in the refreshed catalog, update currentTle
+    const found = result.satellites.find(s => s.noradId === currentTle.noradId);
+    if (found) {
+      currentTle.line1 = found.tle.line1;
+      currentTle.line2 = found.tle.line2;
+      currentTle.updatedAt = result.updatedAt;
+      currentTle.source = 'CELESTRAK';
+    }
+    return successResponse(res, {
+      message: `Successfully refreshed ${result.satellites.length} satellites from CelesTrak`,
+      updatedAt: result.updatedAt,
+      source: result.source,
+      currentTle
+    });
+  } catch (err: any) {
+    return errorResponse(res, `Failed to refresh from CelesTrak: ${err.message}`, 502);
+  }
 });
 
 // 6. POST /api/v1/tle (Auth required)
@@ -269,6 +314,32 @@ app.get('/api/v1/satellites', (req: Request, res: Response) => {
   return successResponse(res, getCachedCatalog());
 });
 
+// 12b. Helper: GET /api/v1/satellites/search?q=...
+app.get('/api/v1/satellites/search', async (req: Request, res: Response) => {
+  const query = req.query.q as string;
+  if (!query) {
+    return errorResponse(res, 'Query parameter "q" is required');
+  }
+
+  // First check cached catalog
+  const localMatch = findSatelliteByNameOrNorad(query);
+  if (localMatch) {
+    return successResponse(res, [localMatch]);
+  }
+
+  // If not in local catalog, query CelesTrak directly
+  try {
+    const fetched = await fetchSatelliteFromCelestrak(query);
+    if (fetched) {
+      return successResponse(res, [fetched]);
+    }
+  } catch (err: any) {
+    return errorResponse(res, `CelesTrak search error: ${err.message}`, 502);
+  }
+
+  return successResponse(res, []);
+});
+
 // 13. Helper: GET /api/v1/prediction
 app.get('/api/v1/prediction', (req: Request, res: Response) => {
   const pass = predictNextPass(
@@ -279,6 +350,125 @@ app.get('/api/v1/prediction', (req: Request, res: Response) => {
     trackerConfig.observer
   );
   return successResponse(res, pass);
+});
+
+// 14. JARVIS: GET /api/v1/jarvis/status
+app.get('/api/v1/jarvis/status', async (req: Request, res: Response) => {
+  const health = await checkJarvisHealth();
+  return successResponse(res, {
+    online: health.available,
+    tools: JARVIS_TOOLS.map(t => t.name),
+    details: health.details || null
+  });
+});
+
+// 15. JARVIS: POST /api/v1/jarvis/chat
+app.post('/api/v1/jarvis/chat', async (req: Request, res: Response) => {
+  const { message, sessionId, history } = req.body;
+  if (!message || typeof message !== 'string') {
+    return errorResponse(res, 'Message text is required');
+  }
+
+  // Send message to OpenJarvis service with circuit-breaker protection
+  const jarvisRes = await sendJarvisMessage({
+    message,
+    sessionId,
+    history,
+    backendData: {
+      currentSatellite: trackerStatus.satelliteName,
+      trackingState: trackerStatus.state,
+      azimuth: trackerStatus.currentAngles.azimuth,
+      elevation: trackerStatus.currentAngles.elevation
+    }
+  });
+
+  // If OpenJarvis requested a tool call, execute it safely on the backend!
+  let toolResult = null;
+  if (jarvisRes.toolCall) {
+    toolResult = await executeJarvisTool(jarvisRes.toolCall.name, jarvisRes.toolCall.arguments);
+  }
+
+  return successResponse(res, {
+    reply: jarvisRes.reply,
+    toolCall: jarvisRes.toolCall || null,
+    toolResult: toolResult || null,
+    toolSummary: toolResult?.summary || null,
+    online: jarvisRes.available,
+    sessionId: jarvisRes.sessionId,
+    source: jarvisRes.source
+  });
+});
+
+// 16. JARVIS Voice Status: GET /api/v1/jarvis/voice/status
+app.get('/api/v1/jarvis/voice/status', async (req: Request, res: Response) => {
+  const voiceStatus = await checkJarvisVoiceStatus();
+  return successResponse(res, voiceStatus);
+});
+
+// 17. JARVIS Voice Transcribe: POST /api/v1/jarvis/voice/transcribe
+app.post('/api/v1/jarvis/voice/transcribe', upload.single('file'), async (req: Request, res: Response) => {
+  let audioBuffer: Buffer | null = null;
+  let filename = 'audio.wav';
+  let language = (req.body?.language as string) || 'en-US';
+
+  if (req.file) {
+    audioBuffer = req.file.buffer;
+    filename = req.file.originalname || 'audio.wav';
+  } else if (req.body?.audioBase64) {
+    const base64Str = req.body.audioBase64.replace(/^data:audio\/\w+;base64,/, '');
+    audioBuffer = Buffer.from(base64Str, 'base64');
+  }
+
+  if (!audioBuffer || audioBuffer.length === 0) {
+    return errorResponse(res, "Audio data is required (multipart 'file' or 'audioBase64')", 400);
+  }
+
+  const result = await transcribeAudioBuffer(audioBuffer, filename, language);
+  if (!result.success && result.error && !result.text) {
+    return errorResponse(res, result.error, 502);
+  }
+
+  return successResponse(res, {
+    text: result.text,
+    language: result.language || language,
+    confidence: result.confidence ?? 0.95,
+    duration: result.duration_seconds ?? 0
+  });
+});
+
+// 18. JARVIS Voice Synthesize: POST /api/v1/jarvis/voice/synthesize
+app.post('/api/v1/jarvis/voice/synthesize', async (req: Request, res: Response) => {
+  const { text, voice, speed } = req.body;
+  if (!text || typeof text !== 'string') {
+    return errorResponse(res, 'Text is required for voice synthesis', 400);
+  }
+
+  const audioBuf = await generateJarvisAudio(text, voice, speed);
+  if (!audioBuf) {
+    return errorResponse(res, 'Speech synthesis unavailable or OpenJarvis service offline', 503);
+  }
+
+  res.setHeader('Content-Type', 'audio/mpeg');
+  res.setHeader('Content-Length', audioBuf.length);
+  res.setHeader('X-Voice-Id', voice || 'en-GB-RyanNeural');
+  return res.send(audioBuf);
+});
+
+// 19. Backward-compatible alias: POST /api/v1/jarvis/tts
+app.post('/api/v1/jarvis/tts', async (req: Request, res: Response) => {
+  const { text, voice } = req.body;
+  if (!text || typeof text !== 'string') {
+    return errorResponse(res, 'Text is required for TTS synthesis', 400);
+  }
+
+  const audioBuf = await generateJarvisAudio(text, voice);
+  if (!audioBuf) {
+    return errorResponse(res, 'TTS synthesis unavailable or OpenJarvis service offline', 503);
+  }
+
+  res.setHeader('Content-Type', 'audio/mpeg');
+  res.setHeader('Content-Length', audioBuf.length);
+  return res.send(audioBuf);
 });
 
 /* =========================================================
@@ -324,8 +514,16 @@ function sendTelemetryToClient(ws: WebSocket) {
     tg: [trackerStatus.targetAngles.azimuth, trackerStatus.targetAngles.elevation],
     err,
     imu: [trackerStatus.imu.pitch, trackerStatus.imu.roll, trackerStatus.imu.isLevel ? 1 : 0],
-    sat: trackerStatus.satelliteName?.substring(0, 12) || undefined,
-    rssi: -55 - Math.floor(Math.random() * 8)
+    sat: trackerStatus.satelliteName?.substring(0, 14) || undefined,
+    rssi: -55 - Math.floor(Math.random() * 8),
+    vis: trackerStatus.isVisible ? 1 : 0,
+    pos: trackerStatus.satellitePosition
+      ? [
+          trackerStatus.satellitePosition.latitude,
+          trackerStatus.satellitePosition.longitude,
+          trackerStatus.satellitePosition.altitudeKm
+        ]
+      : undefined
   };
 
   const payload = JSON.stringify(packet);

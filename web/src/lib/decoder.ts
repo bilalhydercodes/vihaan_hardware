@@ -41,6 +41,14 @@ export function decodeTelemetryPacket(packet: LeanTelemetryPacket): TelemetryDat
       isLevel: packet.imu[2] === 1
     },
     satelliteName,
+    satellitePosition: packet.pos
+      ? {
+          latitude: packet.pos[0],
+          longitude: packet.pos[1],
+          altitudeKm: packet.pos[2]
+        }
+      : undefined,
+    isVisible: packet.vis !== undefined ? packet.vis === 1 : undefined,
     rssi: packet.rssi
   };
 }

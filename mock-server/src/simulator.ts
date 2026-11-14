@@ -5,38 +5,57 @@ const DEG_TO_RAD = Math.PI / 180.0;
 const RAD_TO_DEG = 180.0 / Math.PI;
 
 export interface ObserverLocation {
-  latitude: number;       // degrees
-  longitude: number;      // degrees
-  altitudeMeters: number; // meters
+  latitude: number;             // degrees (-90 to +90)
+  longitude: number;            // degrees (-180 to +180)
+  altitudeMeters: number;       // meters above sea level
+  minElevationMaskDeg?: number; // minimum elevation angle (default 10°)
+}
+
+export interface SatellitePropagationResult {
+  lookAngles: AngleCoordinates;
+  subSatellitePoint: {
+    latitude: number;
+    longitude: number;
+    altitudeKm: number;
+  };
+  isVisible: boolean; // elevation >= minElevationMaskDeg
 }
 
 /**
- * Propagate a TLE for an observer location at a specific time using satellite.js (SGP4)
+ * Propagate a TLE for an observer location at a specific time using SGP4 (satellite.js)
+ * Calculates both topocentric look angles (Az/El) and ground-track sub-satellite coordinates (Lat/Lon/Alt)
  */
-export function calculateAzEl(
+export function propagateSatellite(
   line1: string,
   line2: string,
   observer: ObserverLocation,
   date: Date = new Date()
-): AngleCoordinates | null {
+): SatellitePropagationResult | null {
   try {
     const satrec = satellite.twoline2satrec(line1, line2);
     if (!satrec) return null;
 
-    const positionAndVelocity = satellite.propagate(satrec, date);
-    if (!positionAndVelocity || !positionAndVelocity.position || typeof positionAndVelocity.position === 'boolean') {
+    const pv = satellite.propagate(satrec, date);
+    if (!pv || !pv.position || typeof pv.position === 'boolean') {
       return null;
     }
 
     const gstime = satellite.gstime(date);
-    const positionEcf = satellite.eciToEcf(positionAndVelocity.position, gstime);
 
+    // 1. Calculate Geodetic Sub-Satellite Point (Lat, Lon, Alt)
+    const positionGd = satellite.eciToGeodetic(pv.position, gstime);
+    const satLat = parseFloat((satellite.degreesLat(positionGd.latitude)).toFixed(4));
+    const satLon = parseFloat((satellite.degreesLong(positionGd.longitude)).toFixed(4));
+    const satAltKm = parseFloat(positionGd.height.toFixed(1));
+
+    // 2. Calculate Topocentric Look Angles (Azimuth, Elevation) from Observer Location
     const observerGd = {
       latitude: observer.latitude * DEG_TO_RAD,
       longitude: observer.longitude * DEG_TO_RAD,
       height: observer.altitudeMeters / 1000.0 // km
     };
 
+    const positionEcf = satellite.eciToEcf(pv.position, gstime);
     const lookAngles = satellite.ecfToLookAngles(observerGd, positionEcf);
 
     let az = lookAngles.azimuth * RAD_TO_DEG;
@@ -44,12 +63,23 @@ export function calculateAzEl(
     if (az >= 360.0) az -= 360.0;
 
     let el = lookAngles.elevation * RAD_TO_DEG;
-    if (el < 0) el = 0; // Clamped to horizon for tracker limits
-    if (el > 90) el = 90;
+    // Bounded to physical tracker elevation range [0, 90]
+    const clampedEl = Math.max(0, Math.min(90, el));
+
+    const minMask = observer.minElevationMaskDeg ?? 10.0;
+    const isVisible = el >= minMask;
 
     return {
-      azimuth: parseFloat(az.toFixed(2)),
-      elevation: parseFloat(el.toFixed(2))
+      lookAngles: {
+        azimuth: parseFloat(az.toFixed(2)),
+        elevation: parseFloat(clampedEl.toFixed(2))
+      },
+      subSatellitePoint: {
+        latitude: satLat,
+        longitude: satLon,
+        altitudeKm: satAltKm
+      },
+      isVisible
     };
   } catch (err) {
     return null;
@@ -57,7 +87,23 @@ export function calculateAzEl(
 }
 
 /**
- * Calculate next pass over the next 24 hours
+ * Backward compatibility wrapper returning just AngleCoordinates
+ */
+export function calculateAzEl(
+  line1: string,
+  line2: string,
+  observer: ObserverLocation,
+  date: Date = new Date()
+): AngleCoordinates | null {
+  const result = propagateSatellite(line1, line2, observer, date);
+  return result ? result.lookAngles : null;
+}
+
+/**
+ * Accurately calculate the next visible satellite pass using SGP4.
+ * Uses a configurable minimum elevation mask (default 10 degrees).
+ * Detects AOS (when El rises above mask) and LOS (when El drops below mask).
+ * Never fabricates or hardcodes fake passes.
  */
 export function predictNextPass(
   line1: string,
@@ -65,17 +111,22 @@ export function predictNextPass(
   satelliteName: string,
   noradId: number,
   observer: ObserverLocation,
-  startTime: Date = new Date()
+  startTime: Date = new Date(),
+  maxHoursAhead: number = 48
 ): SatellitePass | null {
   try {
     const satrec = satellite.twoline2satrec(line1, line2);
     if (!satrec) return null;
 
+    const minMask = observer.minElevationMaskDeg ?? 10.0;
     const observerGd = {
       latitude: observer.latitude * DEG_TO_RAD,
       longitude: observer.longitude * DEG_TO_RAD,
       height: observer.altitudeMeters / 1000.0
     };
+
+    const stepSeconds = 60; // 1-minute initial scan steps
+    const totalSteps = Math.floor((maxHoursAhead * 3600) / stepSeconds);
 
     let inPass = false;
     let aosTime: Date | null = null;
@@ -84,46 +135,51 @@ export function predictNextPass(
     let losTime: Date | null = null;
     let losAz = 0;
 
-    // Check every 3 minutes across 24h
-    const stepSeconds = 180;
-    const totalSteps = (24 * 3600) / stepSeconds;
+    const startMs = startTime.getTime();
+
+    // Check if satellite is already visible right now
+    const initialLook = getLookAt(satrec, observerGd, startTime);
+    const isInitiallyVisible = initialLook && initialLook.el >= minMask;
+
+    if (isInitiallyVisible && initialLook) {
+      inPass = true;
+      aosTime = startTime;
+      aosAz = parseFloat(initialLook.az.toFixed(1));
+      maxEl = initialLook.el;
+    }
 
     for (let i = 0; i < totalSteps; i++) {
-      const t = new Date(startTime.getTime() + i * stepSeconds * 1000);
-      const pv = satellite.propagate(satrec, t);
-      if (!pv || !pv.position || typeof pv.position === 'boolean') continue;
+      const t = new Date(startMs + i * stepSeconds * 1000);
+      const look = getLookAt(satrec, observerGd, t);
+      if (!look) continue;
 
-      const gst = satellite.gstime(t);
-      const ecf = satellite.eciToEcf(pv.position, gst);
-      const look = satellite.ecfToLookAngles(observerGd, ecf);
-      const el = look.elevation * RAD_TO_DEG;
-      let az = look.azimuth * RAD_TO_DEG;
-      if (az < 0) az += 360;
-
-      if (el >= 5.0) {
+      if (look.el >= minMask) {
         if (!inPass) {
+          // Transition from below mask to above mask: AOS!
+          // Refine exact second by stepping back up to 60 seconds
+          const refinedAos = refineCrossing(satrec, observerGd, t.getTime() - stepSeconds * 1000, t.getTime(), minMask, true);
+          aosTime = refinedAos.time;
+          aosAz = parseFloat(refinedAos.az.toFixed(1));
+          maxEl = look.el;
           inPass = true;
-          aosTime = t;
-          aosAz = parseFloat(az.toFixed(1));
-          maxEl = el;
         } else {
-          if (el > maxEl) maxEl = el;
+          if (look.el > maxEl) {
+            maxEl = look.el;
+          }
         }
       } else {
         if (inPass && aosTime) {
-          losTime = t;
-          losAz = parseFloat(az.toFixed(1));
-          break;
+          // Transition from above mask to below mask: LOS!
+          const refinedLos = refineCrossing(satrec, observerGd, t.getTime() - stepSeconds * 1000, t.getTime(), minMask, false);
+          losTime = refinedLos.time;
+          losAz = parseFloat(refinedLos.az.toFixed(1));
+          break; // Found our complete pass!
         }
       }
     }
 
-    if (inPass && aosTime) {
-      if (!losTime) {
-        // Geostationary/IGSO or still in pass at end of window
-        losTime = new Date(aosTime.getTime() + 12 * 3600 * 1000);
-      }
-      const durationSeconds = Math.round((losTime.getTime() - aosTime.getTime()) / 1000);
+    if (aosTime && losTime) {
+      const durationSeconds = Math.max(1, Math.round((losTime.getTime() - aosTime.getTime()) / 1000));
       return {
         satelliteName,
         noradId,
@@ -132,28 +188,93 @@ export function predictNextPass(
         maxElevation: parseFloat(maxEl.toFixed(1)),
         durationSeconds,
         aosAzimuth: aosAz,
-        losAzimuth: losAz
+        losAzimuth: losAz,
+        elevationMaskDeg: minMask,
+        isVisibleNow: isInitiallyVisible
       };
     }
 
-    // Default mock pass if geo-stationary or no rise in window
-    return {
-      satelliteName,
-      noradId,
-      aos: new Date(startTime.getTime() + 15 * 60 * 1000).toISOString(),
-      los: new Date(startTime.getTime() + 75 * 60 * 1000).toISOString(),
-      maxElevation: 58.4,
-      durationSeconds: 3600,
-      aosAzimuth: 110.5,
-      losAzimuth: 245.0
-    };
+    // Geostationary/IGSO satellites or pass currently ongoing without LOS within search window
+    if (inPass && aosTime && !losTime) {
+      // For stationary NavIC/IRNSS or GEO satellites that stay perpetually above horizon
+      return {
+        satelliteName,
+        noradId,
+        aos: aosTime.toISOString(),
+        los: new Date(aosTime.getTime() + 24 * 3600 * 1000).toISOString(),
+        maxElevation: parseFloat(maxEl.toFixed(1)),
+        durationSeconds: 86400,
+        aosAzimuth: aosAz,
+        losAzimuth: aosAz,
+        elevationMaskDeg: minMask,
+        isVisibleNow: true
+      };
+    }
+
+    // No pass found above the elevation mask in the search window - DO NOT return fake mock data!
+    return null;
   } catch (err) {
     return null;
   }
 }
 
 /**
- * Simulate small MPU-6050 accelerometer jitter
+ * Helper to get Az/El for an observer at time t
+ */
+function getLookAt(
+  satrec: satellite.SatRec,
+  observerGd: { latitude: number; longitude: number; height: number },
+  t: Date
+): { az: number; el: number } | null {
+  const pv = satellite.propagate(satrec, t);
+  if (!pv || !pv.position || typeof pv.position === 'boolean') return null;
+
+  const gst = satellite.gstime(t);
+  const ecf = satellite.eciToEcf(pv.position, gst);
+  const look = satellite.ecfToLookAngles(observerGd, ecf);
+
+  let az = look.azimuth * RAD_TO_DEG;
+  if (az < 0) az += 360;
+  const el = look.elevation * RAD_TO_DEG;
+
+  return { az, el };
+}
+
+/**
+ * Binary search to refine the exact second when elevation crosses minMask
+ */
+function refineCrossing(
+  satrec: satellite.SatRec,
+  observerGd: { latitude: number; longitude: number; height: number },
+  tLowMs: number,
+  tHighMs: number,
+  minMask: number,
+  rising: boolean
+): { time: Date; az: number } {
+  let low = tLowMs;
+  let high = tHighMs;
+  let bestAz = 0;
+
+  for (let iter = 0; iter < 8; iter++) {
+    const mid = Math.round((low + high) / 2);
+    const look = getLookAt(satrec, observerGd, new Date(mid));
+    if (!look) break;
+    bestAz = look.az;
+
+    if (rising) {
+      if (look.el >= minMask) high = mid;
+      else low = mid;
+    } else {
+      if (look.el < minMask) high = mid;
+      else low = mid;
+    }
+  }
+
+  return { time: new Date(high), az: bestAz };
+}
+
+/**
+ * MPU-6050 accelerometer simulation
  */
 export function simulateImu(prevPitch: number = 0.1, prevRoll: number = -0.05): ImuOrientation {
   const noiseP = (Math.random() - 0.5) * 0.04;
@@ -164,4 +285,3 @@ export function simulateImu(prevPitch: number = 0.1, prevRoll: number = -0.05): 
 
   return { pitch, roll, isLevel };
 }
-

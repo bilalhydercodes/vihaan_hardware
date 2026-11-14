@@ -6,15 +6,16 @@ import {
   TrackingState,
   AngleCoordinates
 } from '../../shared/types/tracker.js';
-import { FALLBACK_SATELLITES, findSatelliteByNameOrNorad } from './tle-data.js';
-import { calculateAzEl, simulateImu } from './simulator.js';
+import { FALLBACK_SATELLITES, findSatelliteByNameOrNorad, fetchSatelliteFromCelestrak } from './tle-data.js';
+import { propagateSatellite, simulateImu, calculateAzEl } from './simulator.js';
 
-// Default configuration
+// Default configuration with 10 degree minimum elevation mask
 export const trackerConfig: TrackerConfig = {
   observer: {
-    latitude: 28.6139,    // New Delhi (example for NavIC testing)
+    latitude: 28.6139,    // Delhi Technological University (DTU), New Delhi
     longitude: 77.2090,
-    altitudeMeters: 216.0
+    altitudeMeters: 216.0,
+    minElevationMaskDeg: 10.0 // Configurable minimum elevation mask (default 10 degrees)
   },
   motion: {
     maxAzimuthSpeedDegS: 4.0,       // Conservative for 28BYJ-48 unipolar stepper
@@ -27,7 +28,7 @@ export const trackerConfig: TrackerConfig = {
   }
 };
 
-// Default active TLE (NavIC-1B)
+// Default active TLE: METEOR-M2 4 (Weather satellite)
 const initialSat = FALLBACK_SATELLITES[0];
 export let currentTle: TleData = {
   satelliteName: initialSat.name,
@@ -38,21 +39,27 @@ export let currentTle: TleData = {
   source: 'CELESTRAK'
 };
 
+// Initial propagation for METEOR-M2 4
+const initialProp = propagateSatellite(currentTle.line1, currentTle.line2, trackerConfig.observer, new Date());
+
 // Current tracker status
 const startTime = Date.now();
 export const trackerStatus: TrackerStatus = {
   state: 'IDLE',
   homed: true,
-  currentAngles: { azimuth: 120.0, elevation: 45.0 },
-  targetAngles: { azimuth: 120.0, elevation: 45.0 },
+  currentAngles: initialProp ? initialProp.lookAngles : { azimuth: 180.0, elevation: 0.0 },
+  targetAngles: initialProp ? initialProp.lookAngles : { azimuth: 180.0, elevation: 0.0 },
   satelliteName: initialSat.name,
   noradId: initialSat.noradId,
+  satellitePosition: initialProp ? initialProp.subSatellitePoint : undefined,
+  isVisible: initialProp ? initialProp.isVisible : false,
+  hardwareConnected: false, // Set to true if physical serial bridge is connected
   imu: { pitch: 0.1, roll: -0.05, isLevel: true },
   timeSync: 'SYNCED',
   lastTimeSync: new Date().toISOString(),
   uptimeSeconds: 0,
   lastError: null,
-  firmwareVersion: '1.0.0-esp32-mock'
+  firmwareVersion: '1.2.0-esp32'
 };
 
 // Ring buffer for logs (stores last 200 items in memory)
@@ -93,8 +100,14 @@ export function startHoming(): void {
   trackerStatus.targetAngles = { azimuth: 0.0, elevation: 0.0 };
 }
 
-export function selectSatellite(nameOrNorad: string | number, autoTrack = false): boolean {
-  const sat = findSatelliteByNameOrNorad(nameOrNorad);
+export async function selectSatellite(nameOrNorad: string | number, autoTrack = false): Promise<boolean> {
+  let sat = findSatelliteByNameOrNorad(nameOrNorad);
+
+  // If not found in cache, attempt live CelesTrak query
+  if (!sat) {
+    sat = (await fetchSatelliteFromCelestrak(nameOrNorad)) || undefined;
+  }
+
   if (!sat) return false;
 
   currentTle = {
@@ -109,10 +122,12 @@ export function selectSatellite(nameOrNorad: string | number, autoTrack = false)
   trackerStatus.satelliteName = sat.name;
   trackerStatus.noradId = sat.noradId;
 
-  // Compute immediate target
-  const azEl = calculateAzEl(currentTle.line1, currentTle.line2, trackerConfig.observer, new Date());
-  if (azEl) {
-    trackerStatus.targetAngles = azEl;
+  // Compute immediate target and sub-satellite coordinates
+  const prop = propagateSatellite(currentTle.line1, currentTle.line2, trackerConfig.observer, new Date());
+  if (prop) {
+    trackerStatus.targetAngles = prop.lookAngles;
+    trackerStatus.satellitePosition = prop.subSatellitePoint;
+    trackerStatus.isVisible = prop.isVisible;
   }
 
   if (autoTrack) {
@@ -134,13 +149,15 @@ export function updateTle(name: string, line1: string, line2: string): void {
   trackerStatus.satelliteName = name;
   trackerStatus.noradId = noradId;
 
-  const azEl = calculateAzEl(line1, line2, trackerConfig.observer, new Date());
-  if (azEl) {
-    trackerStatus.targetAngles = azEl;
+  const prop = propagateSatellite(line1, line2, trackerConfig.observer, new Date());
+  if (prop) {
+    trackerStatus.targetAngles = prop.lookAngles;
+    trackerStatus.satellitePosition = prop.subSatellitePoint;
+    trackerStatus.isVisible = prop.isVisible;
   }
 }
 
-// Simulation Physics Tick (runs every 100ms)
+// Simulation Physics & Propagation Tick (runs every 100ms)
 const TICK_INTERVAL_MS = 100;
 const DT_SECONDS = TICK_INTERVAL_MS / 1000.0;
 let lastLogTime = 0;
@@ -149,11 +166,16 @@ setInterval(() => {
   trackerStatus.uptimeSeconds = Math.floor((Date.now() - startTime) / 1000);
   trackerStatus.imu = simulateImu(trackerStatus.imu.pitch, trackerStatus.imu.roll);
 
-  // If tracking, update target coordinates from SGP4
-  if (trackerStatus.state === 'TRACKING') {
-    const azEl = calculateAzEl(currentTle.line1, currentTle.line2, trackerConfig.observer, new Date());
-    if (azEl) {
-      trackerStatus.targetAngles = azEl;
+  // If tracking or calculating, propagate satellite position
+  const prop = propagateSatellite(currentTle.line1, currentTle.line2, trackerConfig.observer, new Date());
+  if (prop) {
+    trackerStatus.satellitePosition = prop.subSatellitePoint;
+    trackerStatus.isVisible = prop.isVisible;
+
+    if (trackerStatus.state === 'TRACKING') {
+      // Only slew physical motors to follow satellite if it is above horizon / mask
+      // or point to expected AOS azimuth when waiting
+      trackerStatus.targetAngles = prop.lookAngles;
     }
   }
 
@@ -193,9 +215,9 @@ setInterval(() => {
     }
   }
 
-  // Periodic logging into ring buffer every 1.5 seconds
+  // Periodic logging into ring buffer every 2 seconds
   const now = Date.now();
-  if (now - lastLogTime >= 1500) {
+  if (now - lastLogTime >= 2000) {
     lastLogTime = now;
     const dAz = trackerStatus.targetAngles.azimuth - trackerStatus.currentAngles.azimuth;
     const dEl = trackerStatus.targetAngles.elevation - trackerStatus.currentAngles.elevation;
@@ -212,4 +234,3 @@ setInterval(() => {
     });
   }
 }, TICK_INTERVAL_MS);
-
