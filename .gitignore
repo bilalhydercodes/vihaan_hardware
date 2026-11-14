@@ -27,6 +27,7 @@ openjarvis-repo/
 *.png
 !web/public/*.png
 !web/public/*.webp
+!web/public/textures/*
 
 # Next.js build output
 .next/
