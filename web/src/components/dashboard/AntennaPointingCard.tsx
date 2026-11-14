@@ -12,7 +12,6 @@ interface AntennaPointingCardProps {
 
 export function AntennaPointingCard({ current, target, isConnected }: AntennaPointingCardProps) {
   const [showTooltip, setShowTooltip] = useState(false);
-  const [imgLoaded, setImgLoaded] = useState(false);
 
   // Only display real values if connected and current angles exist
   const hasAngles = isConnected && current !== null && current !== undefined;
@@ -117,19 +116,12 @@ export function AntennaPointingCard({ current, target, isConnected }: AntennaPoi
                 alt="Antenna Dish Rotator"
                 width={160}
                 height={140}
-                onLoad={() => setImgLoaded(true)}
                 className={`object-contain drop-shadow-md select-none pointer-events-none transition-all duration-300 ${
-                  imgLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-                } ${hasAngles ? 'filter-none' : 'grayscale-[40%] contrast-90'}`}
+                  hasAngles ? 'filter-none' : 'grayscale-[40%] contrast-90'
+                }`}
                 loading="eager"
-                decoding="async"
               />
             </picture>
-            {!imgLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full border-2 border-sky-200 border-t-sky-500 animate-spin" />
-              </div>
-            )}
           </div>
 
           {/* SVG Overlay for Real Direction Indicators */}

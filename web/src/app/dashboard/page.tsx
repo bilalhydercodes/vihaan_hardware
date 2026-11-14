@@ -51,10 +51,10 @@ export default function DashboardPage() {
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-5">
-      {/* 2-Column Dashboard Grid: Left Mission Sidebar + Main Hero Visualizations */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Left Mission Control Sidebar */}
-        <aside className="lg:col-span-4 xl:col-span-3">
+      {/* 2-Column Dashboard Layout: Left Mission Sidebar (reduced width by 1/4) + Main Hero Visualizations */}
+      <div className="flex flex-col lg:flex-row gap-5 items-start">
+        {/* Left Mission Control Sidebar: Reduced width by ~1/4 (280px) to give priority to 3D Earth */}
+        <aside className="w-full lg:w-[270px] xl:w-[285px] shrink-0">
           <DashboardSidebar
             pass={pass}
             loadingPass={loadingPass}
@@ -63,12 +63,12 @@ export default function DashboardPage() {
           />
         </aside>
 
-        {/* Main Dashboard Visualization Area */}
-        <main className="lg:col-span-8 xl:col-span-9 space-y-5">
-          {/* Row 1: Real-time Aim & Pointing (Sky Map + Antenna Pointing) */}
+        {/* Main Dashboard Visualization Area: Expanded to fill remaining width */}
+        <main className="flex-1 min-w-0 space-y-5">
+          {/* Row 1: Real-time Aim & Pointing (Earth View 67% + Antenna Pointing 33%) */}
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
-            {/* Topocentric Sky Map */}
-            <div className="xl:col-span-7">
+            {/* 3D Earth / Sky Map (Expanded to xl:col-span-8) */}
+            <div className="xl:col-span-8">
               <SkyMapCard
                 current={currentAngles}
                 target={targetAngles}
@@ -78,8 +78,8 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* Antenna Pointing Card (Switched with Pass Profile) */}
-            <div className="xl:col-span-5">
+            {/* Antenna Pointing Card (Compact xl:col-span-4) */}
+            <div className="xl:col-span-4">
               <AntennaPointingCard
                 current={currentAngles}
                 target={targetAngles}

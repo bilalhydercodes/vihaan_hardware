@@ -2,7 +2,7 @@
 
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Stars, Html } from '@react-three/drei';
+import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import * as satellite from 'satellite.js';
 
@@ -108,9 +108,11 @@ function Earth() {
         <sphereGeometry args={[R, 128, 128]} />
         <meshStandardMaterial
           map={earthTexture || undefined}
-          roughness={0.3}
-          metalness={0.05}
-          color={earthTexture ? '#ffffff' : '#38bdf8'}
+          roughness={0.35}
+          metalness={0.08}
+          color="#ffffff"
+          emissive="#0d2847"
+          emissiveIntensity={0.28}
         />
       </mesh>
 
@@ -120,7 +122,7 @@ function Earth() {
         <meshStandardMaterial
           map={cloudsTexture || undefined}
           transparent
-          opacity={0.35}
+          opacity={0.38}
           depthWrite={false}
           color="#ffffff"
         />
@@ -132,7 +134,7 @@ function Earth() {
         <meshBasicMaterial
           color="#38bdf8"
           transparent
-          opacity={0.22}
+          opacity={0.25}
           side={THREE.BackSide}
           blending={THREE.AdditiveBlending}
         />
@@ -142,7 +144,7 @@ function Earth() {
 }
 
 // 2. Realistic 3D Satellite Model Component
-function SatelliteModel({ position, name = 'Satellite', isVisible = false }: { position: THREE.Vector3; name?: string; isVisible?: boolean }) {
+function SatelliteModel({ position, isVisible = false }: { position: THREE.Vector3; name?: string; isVisible?: boolean }) {
   const satRef = useRef<THREE.Group>(null);
 
   // Align satellite to point its dish toward the Earth center (0,0,0)
@@ -180,16 +182,14 @@ function SatelliteModel({ position, name = 'Satellite', isVisible = false }: { p
 
       {/* Glowing Indicator Orb */}
       <mesh>
-        <sphereGeometry args={[0.02, 16, 16]} />
+        <sphereGeometry args={[0.03, 16, 16]} />
         <meshBasicMaterial color={isVisible ? '#10b981' : '#38bdf8'} />
       </mesh>
-
-      {/* Satellite Name Badge in 3D */}
-      <Html distanceFactor={8} position={[0, 0.12, 0]}>
-        <div className="bg-slate-950/80 backdrop-blur-md border border-sky-400/40 text-sky-300 font-mono text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap shadow-lg pointer-events-none select-none">
-          {name.split(' ')[0]}
-        </div>
-      </Html>
+      {/* Glowing Outer Halo */}
+      <mesh>
+        <sphereGeometry args={[0.06, 16, 16]} />
+        <meshBasicMaterial color={isVisible ? '#10b981' : '#0284c7'} transparent opacity={0.35} />
+      </mesh>
     </group>
   );
 }
@@ -203,20 +203,14 @@ function GroundStation({ lat = 28.6139, lon = 77.2090 }: { lat?: number; lon?: n
     <group position={stationPos}>
       {/* Ground Station Glowing Pin */}
       <mesh>
-        <sphereGeometry args={[0.025, 16, 16]} />
+        <sphereGeometry args={[0.035, 16, 16]} />
         <meshBasicMaterial color="#10b981" />
       </mesh>
       {/* Beacon Halo */}
       <mesh>
-        <sphereGeometry args={[0.045, 16, 16]} />
+        <sphereGeometry args={[0.07, 16, 16]} />
         <meshBasicMaterial color="#10b981" transparent opacity={0.35} />
       </mesh>
-      {/* Label */}
-      <Html distanceFactor={8} position={[0, 0.06, 0]}>
-        <div className="bg-emerald-950/85 backdrop-blur-md border border-emerald-500/50 text-emerald-300 font-mono text-[9px] font-bold px-1.5 py-0.5 rounded shadow pointer-events-none select-none">
-          STATION
-        </div>
-      </Html>
     </group>
   );
 }
@@ -320,7 +314,7 @@ export default function EarthScene({
 
   return (
     <div
-      className="relative w-full h-[480px] sm:h-[530px] lg:h-[560px] rounded-2xl overflow-hidden select-none bg-cover bg-center border border-slate-900/10 shadow-inner"
+      className="relative w-full h-full min-h-[480px] sm:min-h-[530px] lg:min-h-[560px] rounded-2xl overflow-hidden select-none bg-cover bg-center"
       style={{ backgroundImage: "url('/space-starfield.png')" }}
     >
       {/* Soft atmospheric space vignette */}
@@ -331,12 +325,12 @@ export default function EarthScene({
         gl={{ antialias: true, alpha: true }}
       >
         {/* High-Luminosity Studio Lighting for Radiant Earth */}
-        <ambientLight intensity={1.5} />
-        <hemisphereLight args={['#ffffff', '#0f172a', 1.2]} />
-        <directionalLight position={[6, 4, 6]} intensity={3.2} />
-        <directionalLight position={[-6, 3, -4]} intensity={1.8} color="#93c5fd" />
-        <directionalLight position={[0, -5, 4]} intensity={1.2} color="#e0f2fe" />
-        <directionalLight position={[0, 1, 5]} intensity={1.0} />
+        <ambientLight intensity={2.4} />
+        <hemisphereLight args={['#ffffff', '#0f172a', 1.8]} />
+        <directionalLight position={[6, 4, 6]} intensity={3.8} />
+        <directionalLight position={[-6, 3, -4]} intensity={2.5} color="#93c5fd" />
+        <directionalLight position={[0, -5, 4]} intensity={1.5} color="#e0f2fe" />
+        <directionalLight position={[0, 1, 6]} intensity={2.0} />
 
         {/* Space Depth Stars */}
         <Stars radius={80} depth={50} count={1800} factor={4} fade speed={0.4} />
@@ -353,7 +347,6 @@ export default function EarthScene({
         {/* Real-time Positioned Satellite */}
         <SatelliteModel
           position={satThreePos}
-          name={satelliteName}
           isVisible={Boolean(isVisible)}
         />
 
@@ -379,6 +372,13 @@ export default function EarthScene({
       <div className="absolute top-3 left-3 z-10 bg-slate-950/70 backdrop-blur-md border border-white/10 px-2.5 py-1 rounded-lg text-slate-300 font-mono text-[10px] pointer-events-none flex items-center gap-1.5 shadow-sm">
         <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
         <span>3D Earth &bull; Drag to rotate &bull; Scroll to zoom</span>
+      </div>
+
+      {/* Top-Right Active Satellite Indicator Pill */}
+      <div className="absolute top-3 right-3 z-10 bg-slate-950/75 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-xl text-white font-mono text-xs flex items-center gap-2 shadow-lg pointer-events-none">
+        <span className={`w-2 h-2 rounded-full ${isVisible ? 'bg-emerald-400 animate-ping' : 'bg-sky-400'}`} />
+        <span className="font-bold text-sky-300">{satelliteName.split(' ')[0]}</span>
+        <span className="text-slate-400 text-[10px]">{isVisible ? 'In View' : 'SGP4 Orbit'}</span>
       </div>
     </div>
   );
