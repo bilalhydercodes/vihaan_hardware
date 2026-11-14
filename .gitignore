@@ -25,6 +25,8 @@ openjarvis-repo/
 
 # Temporary test screenshots
 *.png
+!web/public/*.png
+!web/public/*.webp
 
 # Next.js build output
 .next/
