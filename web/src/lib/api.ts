@@ -16,8 +16,31 @@ import {
 } from '@shared/types/tracker';
 import { setCachedSatelliteName } from './decoder';
 
-function getBaseUrl(): string {
+export function getCustomTrackerUrl(): string {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem('navic_custom_tracker_url') || '';
+}
+
+export function setCustomTrackerUrl(url: string): void {
+  if (typeof window === 'undefined') return;
+  if (!url || url.trim() === '') {
+    localStorage.removeItem('navic_custom_tracker_url');
+  } else {
+    localStorage.setItem('navic_custom_tracker_url', url.trim());
+  }
+}
+
+export function clearCustomTrackerUrl(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('navic_custom_tracker_url');
+}
+
+export function getBaseUrl(): string {
   if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('navic_custom_tracker_url')?.trim();
+    if (custom && custom !== '') {
+      return custom.replace(/\/+$/, '');
+    }
     const envUrl = process.env.NEXT_PUBLIC_TRACKER_URL?.trim();
     if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('navic-tracker-live.trycloudflare.com')) {
       return envUrl.replace(/\/+$/, '');
@@ -31,8 +54,6 @@ function getBaseUrl(): string {
   }
   return 'http://localhost:8080';
 }
-
-const BASE_URL = getBaseUrl();
 
 export function getStoredAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -50,7 +71,7 @@ export function clearStoredAuthToken(): void {
 }
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = `${BASE_URL}${endpoint}`;
+  const url = `${getBaseUrl()}${endpoint}`;
   const token = getStoredAuthToken();
 
   const headers: Record<string, string> = {
@@ -239,7 +260,7 @@ export const trackerApi = {
     confidence: number;
     duration: number;
   }> {
-    const url = `${BASE_URL}/api/v1/jarvis/voice/transcribe`;
+    const url = `${getBaseUrl()}/api/v1/jarvis/voice/transcribe`;
     const token = getStoredAuthToken();
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.wav');
@@ -264,7 +285,7 @@ export const trackerApi = {
   },
 
   async synthesizeSpeech(text: string, voice = 'en-GB-RyanNeural', speed = 1.0): Promise<Blob> {
-    const url = `${BASE_URL}/api/v1/jarvis/voice/synthesize`;
+    const url = `${getBaseUrl()}/api/v1/jarvis/voice/synthesize`;
     const token = getStoredAuthToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json'
