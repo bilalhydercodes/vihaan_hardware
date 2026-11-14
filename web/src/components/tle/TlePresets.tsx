@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { SatelliteInfo } from '@shared/types/tracker';
 import { trackerApi } from '@/lib/api';
 import { useTracker } from '@/context/TrackerContext';
-import { RefreshCw, Satellite, CheckCircle, Search, Compass, Radio } from '@/components/ui/icons';
+import { RefreshCw, Satellite, CheckCircle, Search } from '@/components/ui/icons';
 
 interface TlePresetsProps {
   onSelectPreset?: (sat: SatelliteInfo) => void;
@@ -96,176 +96,127 @@ export function TlePresets({ onSelectPreset, onSuccess, onError }: TlePresetsPro
   const activeNoradId = status?.noradId;
 
   return (
-    <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-5 shadow-xl">
+    <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-            <Compass className="w-6 h-6" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-white tracking-tight">
-              Real CelesTrak Satellite Catalog
-            </h3>
-            <p className="text-xs text-slate-400">
-              Live orbital elements synchronized directly from NORAD space tracking ({satellites.length} satellites loaded)
-            </p>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900">Official Satellite Catalog</h2>
+          <p className="text-xs text-slate-500">Pick any real satellite to lock and begin tracking immediately.</p>
         </div>
 
         <button
           onClick={handleRefreshCelestrak}
-          disabled={refreshing}
-          className="flex items-center gap-2 px-3.5 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-xs font-semibold text-cyan-300 transition-colors disabled:opacity-50 cursor-pointer self-start sm:self-center"
+          disabled={refreshing || loading}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 transition-colors cursor-pointer self-start sm:self-auto shadow-2xs"
         >
-          <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${refreshing ? 'animate-spin' : ''}`} />
-          <span>{refreshing ? 'Syncing CelesTrak...' : 'Refresh from CelesTrak'}</span>
+          <RefreshCw className={`w-3.5 h-3.5 text-sky-600 ${refreshing ? 'animate-spin' : ''}`} />
+          <span>Sync All CelesTrak</span>
         </button>
       </div>
 
-      {/* Filter Tabs and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        {/* Category Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 text-xs">
-          <button
-            type="button"
-            onClick={() => setActiveTab('ALL')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
-              activeTab === 'ALL'
-                ? 'bg-cyan-500 text-slate-950 font-bold'
-                : 'bg-slate-800 text-slate-300 hover:text-white'
-            }`}
-          >
-            All ({satellites.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('NAVIC')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
-              activeTab === 'NAVIC'
-                ? 'bg-cyan-500 text-slate-950 font-bold'
-                : 'bg-slate-800 text-slate-300 hover:text-white'
-            }`}
-          >
-            🇮🇳 NavIC / IRNSS
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('WEATHER')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
-              activeTab === 'WEATHER'
-                ? 'bg-cyan-500 text-slate-950 font-bold'
-                : 'bg-slate-800 text-slate-300 hover:text-white'
-            }`}
-          >
-            ⛅ Weather (137 MHz)
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('LEO')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
-              activeTab === 'LEO'
-                ? 'bg-cyan-500 text-slate-950 font-bold'
-                : 'bg-slate-800 text-slate-300 hover:text-white'
-            }`}
-          >
-            🛰️ Space Stations (ISS)
-          </button>
+      {/* Tabs & Search Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Category Tabs */}
+        <div className="flex items-center p-1 bg-slate-100 rounded-xl text-xs font-semibold">
+          {[
+            { id: 'ALL', label: 'All Satellites' },
+            { id: 'WEATHER', label: 'Weather (137 MHz)' },
+            { id: 'NAVIC', label: 'NavIC / IRNSS' },
+            { id: 'LEO', label: 'LEO / Stations' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                activeTab === tab.id
+                  ? 'bg-sky-500 text-white font-bold shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Search input */}
-        <div className="relative min-w-[200px] sm:min-w-[240px]">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+        {/* Search Input */}
+        <div className="relative sm:w-64">
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
           <input
             type="text"
+            placeholder="Filter by name or NORAD..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name or NORAD ID..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+            className="w-full bg-white border border-slate-300 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
           />
         </div>
       </div>
 
-      {/* Satellite Cards Grid */}
+      {/* Satellite Grid Cards */}
       {loading ? (
-        <div className="p-8 text-center text-slate-400 text-xs animate-pulse">
-          Loading live CelesTrak orbital catalog...
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="h-28 bg-slate-100 rounded-xl animate-pulse" />
+          ))}
         </div>
       ) : filteredSats.length === 0 ? (
-        <div className="p-8 text-center text-slate-400 text-xs bg-slate-950/40 rounded-xl border border-slate-800">
-          No satellites match your search. Try another search term or click "Refresh from CelesTrak".
+        <div className="p-8 text-center text-xs text-slate-500 bg-slate-50 rounded-xl border border-slate-200">
+          No satellites match your search. Try typing &quot;NavIC&quot;, &quot;NOAA&quot;, or &quot;METEOR&quot;.
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[460px] overflow-y-auto pr-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredSats.map((sat) => {
-            const isCurrentlySelected = activeNoradId === sat.noradId;
+            const isCurrentlyAimed = sat.noradId === activeNoradId;
             const isApplying = applyingNorad === sat.noradId;
 
             return (
               <div
                 key={sat.noradId}
-                className={`p-3.5 rounded-xl border flex flex-col justify-between transition-all ${
-                  isCurrentlySelected
-                    ? 'bg-cyan-950/30 border-cyan-500/50 shadow-md shadow-cyan-950/40'
-                    : 'bg-slate-950/70 border-slate-800/80 hover:border-slate-700'
+                className={`p-4 rounded-xl border transition-all flex flex-col justify-between space-y-3 ${
+                  isCurrentlyAimed
+                    ? 'bg-sky-50/70 border-sky-300 shadow-xs'
+                    : 'bg-white border-slate-200/90 hover:border-sky-200 hover:shadow-sm'
                 }`}
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">
-                    <span className="font-bold text-xs text-white line-clamp-1">
-                      {sat.name}
-                    </span>
-                    <span
-                      className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                        sat.group === 'NAVIC'
-                          ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
-                          : sat.group === 'WEATHER'
-                          ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
-                          : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                      }`}
-                    >
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-900 leading-snug">{sat.name}</h4>
+                      <span className="text-[11px] text-slate-500 font-mono">NORAD #{sat.noradId}</span>
+                    </div>
+
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
                       {sat.group}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1">
-                    <span>NORAD #{sat.noradId}</span>
-                    <span>&bull;</span>
-                    <span className="text-slate-500">2-Line Elements</span>
-                  </div>
+                  <p className="text-[11px] text-slate-500 mt-2 line-clamp-2">
+                    {sat.group === 'WEATHER'
+                      ? 'Low Earth Orbit (LEO) weather imaging downlink at 137.1 / 137.9 MHz.'
+                      : sat.group === 'NAVIC'
+                      ? 'Geosynchronous / inclined orbit navigation satellite from ISRO constellation.'
+                      : 'Low Earth Orbit space research / amateur station.'}
+                  </p>
                 </div>
 
-                <div className="pt-3 mt-3 border-t border-slate-900 flex items-center gap-2">
-                  {onSelectPreset && (
-                    <button
-                      type="button"
-                      onClick={() => onSelectPreset(sat)}
-                      className="px-2.5 py-1 text-[11px] font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-                    >
-                      View
-                    </button>
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                  {isCurrentlyAimed ? (
+                    <span className="text-xs font-bold text-sky-700 flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5 text-sky-600" /> Aimed
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-slate-400">Ready</span>
                   )}
+
                   <button
-                    type="button"
-                    disabled={isApplying || isCurrentlySelected}
                     onClick={() => handleApplyDirect(sat)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      isCurrentlySelected
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 cursor-default'
-                        : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-sm'
+                    disabled={isApplying}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      isCurrentlyAimed
+                        ? 'bg-sky-100 text-sky-800 hover:bg-sky-200'
+                        : 'bg-sky-500 hover:bg-sky-600 text-white shadow-xs'
                     }`}
                   >
-                    {isCurrentlySelected ? (
-                      <>
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        <span>Active Target</span>
-                      </>
-                    ) : (
-                      <>
-                        <Radio className="w-3.5 h-3.5" />
-                        <span>{isApplying ? 'Aiming...' : 'Track Satellite'}</span>
-                      </>
-                    )}
+                    {isApplying ? 'Aiming...' : isCurrentlyAimed ? 'Track Again' : 'Aim & Track'}
                   </button>
                 </div>
               </div>

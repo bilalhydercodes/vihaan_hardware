@@ -425,28 +425,28 @@ export function JarvisAssistant() {
           <button
             onClick={() => setIsOpen(true)}
             aria-label="Open JARVIS AI Voice Assistant"
-            className="group relative flex items-center gap-2.5 px-4 py-3 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white border border-cyan-500/40 shadow-xl shadow-cyan-950/50 backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
+            className="group relative flex items-center gap-2.5 px-4 py-3 rounded-full bg-white hover:bg-slate-50 text-slate-900 border border-sky-200 shadow-xl shadow-sky-500/10 backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
           >
             {/* Status indicator pulse dot */}
             <span className="relative flex h-3 w-3">
               <span
                 className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                  isOnline ? 'bg-cyan-400' : 'bg-slate-500'
+                  isOnline ? 'bg-sky-400' : 'bg-slate-400'
                 }`}
               />
               <span
                 className={`relative inline-flex rounded-full h-3 w-3 ${
-                  isOnline ? 'bg-cyan-500' : 'bg-slate-600'
+                  isOnline ? 'bg-sky-500' : 'bg-slate-500'
                 }`}
               />
             </span>
 
-            <div className="flex items-center gap-1.5 font-semibold text-sm tracking-wide">
-              <Sparkles className="w-4 h-4 text-cyan-400 group-hover:rotate-12 transition-transform" />
+            <div className="flex items-center gap-1.5 font-bold text-sm tracking-wide text-slate-900">
+              <Sparkles className="w-4 h-4 text-sky-500 group-hover:rotate-12 transition-transform" />
               <span>JARVIS</span>
             </div>
 
-            <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 hidden sm:inline-block">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 font-semibold hidden sm:inline-block">
               Voice Active
             </span>
           </button>
@@ -457,47 +457,47 @@ export function JarvisAssistant() {
       {isOpen && (
         <aside
           aria-label="JARVIS AI Assistant Interface"
-          className="fixed bottom-4 right-4 z-50 w-[95vw] sm:w-[440px] max-h-[92vh] flex flex-col rounded-2xl bg-slate-950/95 border border-cyan-500/40 shadow-2xl shadow-cyan-950/80 backdrop-blur-xl overflow-hidden transition-all duration-300"
+          className="fixed bottom-4 right-4 z-50 w-[95vw] sm:w-[440px] max-h-[92vh] flex flex-col rounded-2xl bg-white border border-slate-200 shadow-2xl backdrop-blur-xl overflow-hidden transition-all duration-300"
         >
           {/* Header Bar */}
-          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-900/90 via-slate-900 to-slate-950 border-b border-slate-800">
+          <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200">
             <div className="flex items-center gap-2.5">
-              <div className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+              <div className="p-1.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-600">
                 <Bot className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-sm tracking-wide text-white">J.A.R.V.I.S.</h3>
+                  <h3 className="font-bold text-sm tracking-wide text-slate-900">J.A.R.V.I.S.</h3>
                   <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[10px] font-medium border ${
+                    className={`inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[10px] font-semibold border ${
                       isOnline
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                        : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border-amber-200'
                     }`}
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                     {isOnline ? 'Online' : 'Offline'}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">Autonomous Ground Flight Director</p>
+                <p className="text-[11px] text-slate-500 font-medium">Autonomous Ground Flight Director</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1 text-slate-400">
+            <div className="flex items-center gap-1 text-slate-500">
               {/* Audio Mute toggle */}
               <button
                 onClick={handleToggleMute}
                 title={isMuted ? 'Unmute Assistant' : 'Mute Assistant'}
-                className="p-1.5 rounded-lg hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                {isMuted ? <VolumeX className="w-4 h-4 text-amber-400" /> : <Volume2 className="w-4 h-4 text-slate-300" />}
+                {isMuted ? <VolumeX className="w-4 h-4 text-amber-600" /> : <Volume2 className="w-4 h-4 text-slate-600" />}
               </button>
 
               {/* Minimize */}
               <button
                 onClick={() => setIsMinimized(!isMinimized)}
                 title={isMinimized ? 'Expand' : 'Collapse'}
-                className="p-1.5 rounded-lg hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isMinimized ? 'rotate-180' : ''}`} />
               </button>
@@ -509,7 +509,7 @@ export function JarvisAssistant() {
                   setIsOpen(false);
                 }}
                 title="Close JARVIS"
-                className="p-1.5 rounded-lg hover:text-red-400 hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg hover:text-rose-600 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -520,11 +520,11 @@ export function JarvisAssistant() {
             <>
               {/* Offline Warning Notice */}
               {isOnline === false && (
-                <div className="bg-amber-950/40 border-b border-amber-500/30 px-4 py-2 text-xs text-amber-200 flex items-center justify-between">
+                <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800 flex items-center justify-between">
                   <span>OpenJarvis service is currently offline.</span>
                   <button
                     onClick={checkStatus}
-                    className="underline text-amber-300 hover:text-amber-100 font-medium cursor-pointer"
+                    className="underline text-amber-900 hover:text-amber-950 font-bold cursor-pointer"
                   >
                     Retry
                   </button>
@@ -532,25 +532,25 @@ export function JarvisAssistant() {
               )}
 
               {/* Chat Message Scroll Window */}
-              <div className="flex-1 p-3.5 space-y-3 overflow-y-auto max-h-[300px] min-h-[180px] text-xs">
+              <div className="flex-1 p-3.5 space-y-3 overflow-y-auto max-h-[300px] min-h-[180px] text-xs bg-slate-50/50">
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
                     className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 leading-relaxed shadow-md ${
+                      className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 leading-relaxed shadow-sm ${
                         msg.role === 'user'
-                          ? 'bg-cyan-600 text-white rounded-br-none'
-                          : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
+                          ? 'bg-sky-500 text-white rounded-br-none'
+                          : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none shadow-2xs'
                       }`}
                     >
                       <p className="whitespace-pre-wrap">{msg.content}</p>
 
                       {/* Tool Summary Card */}
                       {msg.toolSummary && (
-                        <div className="mt-2 p-2 rounded-lg bg-slate-950/70 border border-cyan-500/20 text-[11px] text-cyan-300">
-                          <div className="flex items-center gap-1 font-semibold text-[10px] uppercase tracking-wider text-cyan-400 mb-0.5">
+                        <div className="mt-2 p-2 rounded-lg bg-sky-50 border border-sky-200 text-[11px] text-sky-800">
+                          <div className="flex items-center gap-1 font-bold text-[10px] uppercase tracking-wider text-sky-700 mb-0.5">
                             <Activity className="w-3 h-3" />
                             <span>Executed: {msg.toolCall?.name}</span>
                           </div>
@@ -558,26 +558,26 @@ export function JarvisAssistant() {
                         </div>
                       )}
                     </div>
-                    <span className="text-[10px] text-slate-500 mt-1 px-1">{msg.timestamp}</span>
+                    <span className="text-[10px] text-slate-400 mt-1 px-1">{msg.timestamp}</span>
                   </div>
                 ))}
 
                 {/* Live Speech Recognition Transcription Preview */}
                 {voiceMode === 'listening' && (
                   <div className="flex flex-col items-end animate-pulse">
-                    <div className="max-w-[85%] rounded-2xl rounded-br-none px-3.5 py-2.5 bg-cyan-900/40 border border-cyan-400/40 text-cyan-200">
+                    <div className="max-w-[85%] rounded-2xl rounded-br-none px-3.5 py-2.5 bg-sky-50 border border-sky-300 text-sky-800">
                       <p className="italic">
                         {liveTranscript || 'Listening... speak your command'}
                       </p>
                     </div>
-                    <span className="text-[10px] text-cyan-400 mt-1 px-1">Transcribing speech...</span>
+                    <span className="text-[10px] text-sky-600 font-semibold mt-1 px-1">Transcribing speech...</span>
                   </div>
                 )}
 
                 {/* Processing State Indicator */}
                 {voiceMode === 'processing' && (
-                  <div className="flex items-center gap-2 text-cyan-400 text-xs py-2 px-1">
-                    <Sparkles className="w-4 h-4 animate-spin text-cyan-400" />
+                  <div className="flex items-center gap-2 text-sky-600 text-xs py-2 px-1 font-semibold">
+                    <Sparkles className="w-4 h-4 animate-spin text-sky-500" />
                     <span>JARVIS is calculating orbital telemetry...</span>
                   </div>
                 )}
@@ -586,41 +586,41 @@ export function JarvisAssistant() {
               </div>
 
               {/* Real-time Audio Waveform Visualizer Canvas */}
-              <div className="px-4 py-1.5 bg-slate-950 border-t border-slate-900 flex items-center justify-between">
+              <div className="px-4 py-1.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
                 <canvas
                   ref={canvasRef}
                   width={380}
                   height={28}
-                  className="w-full h-7 rounded bg-slate-900/60 border border-slate-800/80"
+                  className="w-full h-7 rounded-lg bg-white border border-slate-200"
                 />
               </div>
 
               {/* Error Alert Display */}
               {errorMessage && (
-                <div className="mx-3 my-1 px-3 py-2 rounded-lg bg-red-950/60 border border-red-500/40 text-red-200 text-xs flex items-center justify-between">
+                <div className="mx-3 my-1 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between">
                   <span>{errorMessage}</span>
-                  <button onClick={() => setErrorMessage(null)} className="text-red-400 hover:text-red-200 font-bold ml-2">
+                  <button onClick={() => setErrorMessage(null)} className="text-rose-600 hover:text-rose-800 font-bold ml-2">
                     &times;
                   </button>
                 </div>
               )}
 
               {/* Voice Interaction & Controls Center */}
-              <div className="p-3 bg-slate-900/70 border-t border-slate-800/80 flex flex-col gap-2.5">
+              <div className="p-3 bg-white border-t border-slate-200 flex flex-col gap-2.5">
                 {/* Large Voice Action Controls */}
                 <div className="flex items-center justify-between gap-3">
                   {/* Interrupt / Stop Speaking button */}
                   {voiceMode === 'speaking' ? (
                     <button
                       onClick={handleInterruptPlayback}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-xs font-medium transition-colors cursor-pointer"
+                      className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition-colors cursor-pointer"
                     >
                       <StopCircle className="w-4 h-4" />
                       <span>Stop Speaking</span>
                     </button>
                   ) : (
-                    <div className="text-xs text-slate-400 flex items-center gap-1.5">
-                      <span className="font-medium text-slate-300">
+                    <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                      <span className="font-semibold text-slate-700">
                         {voiceMode === 'listening' ? 'Speaking...' : voiceMode === 'processing' ? 'Thinking...' : 'Press Mic to Speak'}
                       </span>
                     </div>
@@ -631,8 +631,8 @@ export function JarvisAssistant() {
                     {/* Pulsing halo rings when listening */}
                     {voiceMode === 'listening' && (
                       <>
-                        <span className="animate-ping absolute inline-flex h-16 w-16 rounded-full bg-cyan-400 opacity-30" />
-                        <span className="animate-pulse absolute inline-flex h-14 w-14 rounded-full bg-cyan-500 opacity-40" />
+                        <span className="animate-ping absolute inline-flex h-16 w-16 rounded-full bg-sky-400 opacity-30" />
+                        <span className="animate-pulse absolute inline-flex h-14 w-14 rounded-full bg-sky-500 opacity-40" />
                       </>
                     )}
 
@@ -640,7 +640,7 @@ export function JarvisAssistant() {
                       <button
                         onClick={handleStopSpeaking}
                         title="Finish Speaking"
-                        className="relative z-10 w-13 h-13 rounded-full bg-cyan-500 text-slate-950 flex items-center justify-center shadow-lg shadow-cyan-500/50 hover:bg-cyan-400 transition-all scale-105 cursor-pointer"
+                        className="relative z-10 w-13 h-13 rounded-full bg-sky-500 text-white flex items-center justify-center shadow-lg shadow-sky-500/30 hover:bg-sky-600 transition-all scale-105 cursor-pointer"
                       >
                         <Check className="w-6 h-6 stroke-[2.5]" />
                       </button>
@@ -649,10 +649,10 @@ export function JarvisAssistant() {
                         onClick={handleStartSpeaking}
                         disabled={voiceMode === 'processing'}
                         title="Click to speak with JARVIS"
-                        className={`relative z-10 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 cursor-pointer ${
+                        className={`relative z-10 w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all duration-200 cursor-pointer ${
                           voiceMode === 'processing'
-                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                            : 'bg-gradient-to-tr from-cyan-600 to-cyan-400 text-slate-950 hover:scale-105 active:scale-95 shadow-cyan-500/30'
+                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                            : 'bg-sky-500 text-white hover:bg-sky-600 hover:scale-105 active:scale-95 shadow-sky-500/25'
                         }`}
                       >
                         <Mic className="w-5 h-5 stroke-[2.5]" />
@@ -663,13 +663,13 @@ export function JarvisAssistant() {
                   {/* Mute toggle button */}
                   <button
                     onClick={handleToggleMute}
-                    className={`p-2 rounded-xl border text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
+                    className={`p-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                       isMuted
-                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-                        : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:text-white'
+                        ? 'bg-amber-50 border-amber-200 text-amber-700'
+                        : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
                     }`}
                   >
-                    {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                    {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-slate-600" />}
                     <span className="hidden sm:inline">{isMuted ? 'Muted' : 'Voice'}</span>
                   </button>
                 </div>
@@ -678,25 +678,25 @@ export function JarvisAssistant() {
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] scrollbar-none">
                   <button
                     onClick={() => dispatchJarvisQuery('Where is NavIC-1B right now?')}
-                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-cyan-300 border border-slate-700/80 transition-colors cursor-pointer"
+                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-sky-700 border border-slate-200 transition-colors cursor-pointer font-medium"
                   >
                     🛰️ NavIC-1B Position
                   </button>
                   <button
                     onClick={() => dispatchJarvisQuery('When is the next ISS pass?')}
-                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-cyan-300 border border-slate-700/80 transition-colors cursor-pointer"
+                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-sky-700 border border-slate-200 transition-colors cursor-pointer font-medium"
                   >
                     ⏰ Next ISS Pass
                   </button>
                   <button
                     onClick={() => dispatchJarvisQuery('What is our station weather?')}
-                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-cyan-300 border border-slate-700/80 transition-colors cursor-pointer"
+                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-sky-700 border border-slate-200 transition-colors cursor-pointer font-medium"
                   >
                     ⛅ Station Weather
                   </button>
                   <button
                     onClick={() => dispatchJarvisQuery('Check tracker hardware status')}
-                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-cyan-300 border border-slate-700/80 transition-colors cursor-pointer"
+                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-sky-700 border border-slate-200 transition-colors cursor-pointer font-medium"
                   >
                     🔧 Hardware Status
                   </button>
@@ -710,12 +710,12 @@ export function JarvisAssistant() {
                     onChange={(e) => setInputText(e.target.value)}
                     placeholder="Type a command or ask a question..."
                     disabled={voiceMode === 'listening' || voiceMode === 'processing'}
-                    className="w-full pl-3.5 pr-10 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500 transition-colors"
+                    className="w-full pl-3.5 pr-10 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors shadow-2xs"
                   />
                   <button
                     type="submit"
                     disabled={!inputText.trim() || voiceMode === 'listening' || voiceMode === 'processing'}
-                    className="absolute right-1.5 p-1.5 rounded-lg bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500 hover:text-slate-950 disabled:opacity-40 disabled:hover:bg-cyan-500/20 disabled:hover:text-cyan-400 transition-colors cursor-pointer"
+                    className="absolute right-1.5 p-1.5 rounded-lg bg-sky-500 text-white hover:bg-sky-600 disabled:opacity-40 disabled:hover:bg-sky-500 transition-colors cursor-pointer shadow-xs"
                   >
                     <Send className="w-3.5 h-3.5" />
                   </button>

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { trackerApi } from '@/lib/api';
-import { validateTle, calculateTleChecksum } from '@/lib/tle-validator';
+import { validateTle } from '@/lib/tle-validator';
 import { useTracker } from '@/context/TrackerContext';
 import { FileText, CheckCircle, AlertTriangle, Download, RefreshCw } from '@/components/ui/icons';
 
@@ -84,133 +84,115 @@ export function TleEditor({ onSuccess, onError }: TleEditorProps) {
   };
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+          <div className="p-2 rounded-xl bg-sky-50 border border-sky-200 text-sky-600">
             <FileText className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white font-mono">Upload / Paste New TLE</h3>
-            <p className="text-xs text-slate-400">Inject custom orbital elements with strict checksum and length verification</p>
+            <h3 className="text-base font-bold text-slate-900 font-mono">Upload / Paste New TLE</h3>
+            <p className="text-xs text-slate-500">Inject custom orbital elements with strict checksum and length verification</p>
           </div>
         </div>
 
         {/* File upload button */}
-        <label className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-mono font-medium text-slate-200 transition-colors cursor-pointer">
-          <Download className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Upload .tle file</span>
+        <label className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 transition-colors cursor-pointer shadow-2xs">
+          <Download className="w-3.5 h-3.5 text-sky-600" />
+          <span>Upload .txt/.tle file</span>
           <input
             type="file"
-            accept=".tle,.txt"
+            accept=".txt,.tle"
             onChange={handleFileUpload}
             className="hidden"
           />
         </label>
       </div>
 
-      {/* Multi-line Paste Box */}
-      <div>
-        <label className="block text-xs font-mono uppercase text-slate-400 mb-1">
-          Quick Paste 2-Line or 3-Line TLE Block
+      {/* Paste Box */}
+      <div className="space-y-1.5">
+        <label className="block text-xs font-semibold text-slate-700">
+          Fast Paste (2 or 3 lines from CelesTrak):
         </label>
         <textarea
           rows={3}
           value={rawPaste}
           onChange={(e) => handleParseRawPaste(e.target.value)}
-          placeholder={`Paste full TLE block here, e.g.:\nNavIC-1B\n1 39635U 14017A   26315.42100000 -.00000100  00000-0  00000-0 0  9993\n2 39635  29.5000 130.0000 0012000  75.0000 285.0000  1.00270000 45001`}
-          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs font-mono text-cyan-300 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+          placeholder={`Paste standard 2 or 3 line TLE block here:\nMETEOR-M2 4\n1 59051U 24039A   24318.84722222 ...\n2 59051  98.7123 210.1234 ...`}
+          className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs font-mono text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
         />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-3 pt-1">
+      <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="block text-xs font-mono uppercase text-slate-300 mb-1">
-            Satellite Name
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Satellite Name:
           </label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. NavIC-1B (IRNSS-1B)"
-            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
+            placeholder="e.g. NOAA 19"
+            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
           />
         </div>
 
         <div>
-          <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-1">
-            <span>Line 1 (Must be 69 chars)</span>
-            <span className={line1.trim().length === 69 ? 'text-emerald-400' : 'text-slate-500'}>
-              {line1.trim().length} / 69
-            </span>
-          </div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Line 1 (69 characters):
+          </label>
           <input
             type="text"
             value={line1}
             onChange={(e) => setLine1(e.target.value)}
-            placeholder="1 39635U 14017A   26315.42100000 -.00000100  00000-0  00000-0 0  9993"
-            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-500"
+            placeholder="1 33591U 09005A   24318.52981329 ..."
+            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
           />
         </div>
 
         <div>
-          <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-1">
-            <span>Line 2 (Must be 69 chars)</span>
-            <span className={line2.trim().length === 69 ? 'text-emerald-400' : 'text-slate-500'}>
-              {line2.trim().length} / 69
-            </span>
-          </div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Line 2 (69 characters):
+          </label>
           <input
             type="text"
             value={line2}
             onChange={(e) => setLine2(e.target.value)}
-            placeholder="2 39635  29.5000 130.0000 0012000  75.0000 285.0000  1.00270000 45001"
-            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-500"
+            placeholder="2 33591  99.1821  45.3123 ..."
+            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
           />
         </div>
 
-        {/* Validation Status Indicator */}
-        {(name || line1 || line2) && (
-          <div
-            className={`p-3 rounded-lg border text-xs font-mono ${
-              validation.isValid
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-            }`}
-          >
+        {/* Validation Feedback */}
+        {line1 && line2 && (
+          <div className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
+            validation.isValid
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              : 'bg-rose-50 border-rose-200 text-rose-800'
+          }`}>
             {validation.isValid ? (
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
-                <span>Format and Checksums Validated. Ready to upload to tracker.</span>
-              </div>
+              <>
+                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Valid TLE format. Checksums and column alignments verified!</span>
+              </>
             ) : (
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5 font-bold">
-                  <AlertTriangle className="w-4 h-4 text-rose-400" />
-                  <span>TLE Format Issues Detected:</span>
-                </div>
-                <ul className="list-disc list-inside text-[11px] text-rose-300/90 pl-1">
-                  {validation.errors.map((err, idx) => (
-                    <li key={idx}>{err}</li>
-                  ))}
-                </ul>
-              </div>
+              <>
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{validation.errors.join('; ')}</span>
+              </>
             )}
           </div>
         )}
 
-        <div className="pt-2 flex justify-end">
-          <button
-            type="submit"
-            disabled={!validation.isValid || isSubmitting}
-            className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:pointer-events-none text-slate-950 font-bold font-mono text-xs rounded-lg transition-all shadow-lg shadow-emerald-500/20 cursor-pointer flex items-center gap-2"
-          >
-            <CheckCircle className="w-4 h-4" />
-            {isSubmitting ? 'Uploading to Flash...' : 'Upload & Save TLE to Tracker'}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={!validation.isValid || isSubmitting}
+          className="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs transition-all shadow-md shadow-sky-500/15 cursor-pointer disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+          <span>{isSubmitting ? 'Uploading to Tracker Flash...' : 'Write TLE to Tracker Memory'}</span>
+        </button>
       </form>
     </div>
   );
 }
-

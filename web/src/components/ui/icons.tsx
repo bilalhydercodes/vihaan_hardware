@@ -495,3 +495,88 @@ export function Copy({ className = "w-5 h-5", size = DEFAULT_SIZE, width, height
     </svg>
   );
 }
+
+export function Info({ className = "w-5 h-5", size = DEFAULT_SIZE, width, height, ...props }: IconProps) {
+  const w = width ?? size;
+  const h = height ?? size;
+  return (
+    <svg width={w} height={h} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ maxWidth: '100%', flexShrink: 0 }} {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  );
+}
+
+export function Calendar({ className = "w-5 h-5", size = DEFAULT_SIZE, width, height, ...props }: IconProps) {
+  const w = width ?? size;
+  const h = height ?? size;
+  return (
+    <svg width={w} height={h} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ maxWidth: '100%', flexShrink: 0 }} {...props}>
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+export function List({ className = "w-5 h-5", size = DEFAULT_SIZE, width, height, ...props }: IconProps) {
+  const w = width ?? size;
+  const h = height ?? size;
+  return (
+    <svg width={w} height={h} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ maxWidth: '100%', flexShrink: 0 }} {...props}>
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+  );
+}
+
+export function Map({ className = "w-5 h-5", size = DEFAULT_SIZE, width, height, ...props }: IconProps) {
+  const w = width ?? size;
+  const h = height ?? size;
+  return (
+    <svg width={w} height={h} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ maxWidth: '100%', flexShrink: 0 }} {...props}>
+      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+      <line x1="8" y1="2" x2="8" y2="18" />
+      <line x1="16" y1="6" x2="16" y2="22" />
+    </svg>
+  );
+}
+
+export function TrendingUp({ className = "w-5 h-5", size = DEFAULT_SIZE, width, height, ...props }: IconProps) {
+  const w = width ?? size;
+  const h = height ?? size;
+  return (
+    <svg width={w} height={h} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ maxWidth: '100%', flexShrink: 0 }} {...props}>
+      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+      <polyline points="17 6 23 6 23 12" />
+    </svg>
+  );
+}
+
+export function Navigation({ className = "w-5 h-5", size = DEFAULT_SIZE, width, height, ...props }: IconProps) {
+  const w = width ?? size;
+  const h = height ?? size;
+  return (
+    <svg width={w} height={h} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ maxWidth: '100%', flexShrink: 0 }} {...props}>
+      <polygon points="3 11 22 2 13 21 11 13 3 11" fill="currentColor" fillOpacity="0.15" />
+    </svg>
+  );
+}
+
+export function Target({ className = "w-5 h-5", size = DEFAULT_SIZE, width, height, ...props }: IconProps) {
+  const w = width ?? size;
+  const h = height ?? size;
+  return (
+    <svg width={w} height={h} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ maxWidth: '100%', flexShrink: 0 }} {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </svg>
+  );
+}

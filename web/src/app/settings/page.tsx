@@ -7,7 +7,6 @@ import { useTracker } from '@/context/TrackerContext';
 import {
   Sliders,
   Compass,
-  Radio,
   AlertTriangle,
   CheckCircle,
   X,
@@ -30,7 +29,7 @@ export default function SettingsPage() {
   const [initialConfig, setInitialConfig] = useState<TrackerConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false); // Collapsed by default
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -133,37 +132,37 @@ export default function SettingsPage() {
 
   if (loading || !config) {
     return (
-      <div className="max-w-3xl mx-auto py-12 text-center text-slate-400">
-        <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin text-cyan-400" />
+      <div className="max-w-3xl mx-auto py-12 text-center text-slate-500">
+        <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin text-sky-600" />
         <p className="text-sm">Loading tracker settings...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto pb-16">
+    <div className="space-y-6 max-w-4xl mx-auto pb-16">
       {/* Header */}
-      <div className="pb-4 border-b border-slate-800">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
-          <Sliders className="w-6 h-6 text-cyan-400" />
+      <div className="pb-4 border-b border-slate-200">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+          <Sliders className="w-6 h-6 text-sky-600" />
           Settings & Calibration
         </h1>
-        <p className="text-sm text-slate-300 mt-1">
+        <p className="text-sm text-slate-600 mt-1">
           Tell the tracker where it is set up so it can accurately calculate satellite angles.
         </p>
       </div>
 
       {/* Error Message */}
       {errorMessage && (
-        <div className="p-4 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-sm flex items-center justify-between gap-3">
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
             <div>
-              <strong className="font-bold text-rose-100 block">Cannot Save Settings</strong>
-              <span>{errorMessage}</span>
+              <strong className="font-bold text-rose-950 block">Cannot Save Settings</strong>
+              <span className="text-xs">{errorMessage}</span>
             </div>
           </div>
-          <button onClick={() => setErrorMessage(null)} className="p-1 hover:bg-rose-500/20 rounded">
+          <button onClick={() => setErrorMessage(null)} className="p-1 hover:bg-rose-100 rounded-lg text-rose-600">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -171,12 +170,12 @@ export default function SettingsPage() {
 
       {/* Success Message */}
       {successMessage && (
-        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-200 text-sm flex items-center justify-between gap-3">
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+            <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
             <span>{successMessage}</span>
           </div>
-          <button onClick={() => setSuccessMessage(null)} className="p-1 hover:bg-emerald-500/20 rounded">
+          <button onClick={() => setSuccessMessage(null)} className="p-1 hover:bg-emerald-100 rounded-lg text-emerald-600">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -184,14 +183,14 @@ export default function SettingsPage() {
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Section 1: My Location */}
-        <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 sm:p-7 space-y-5 shadow-xl">
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-7 space-y-5 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Compass className="w-5 h-5 text-cyan-400" />
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Compass className="w-5 h-5 text-sky-600" />
                 My Location (Where the Tracker Is Placed)
               </h2>
-              <p className="text-xs text-slate-300 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 The tracker needs your coordinates on Earth to know where satellites appear in your sky.
               </p>
             </div>
@@ -199,16 +198,16 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={handleUseBrowserGps}
-              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 text-xs font-semibold transition-all cursor-pointer self-start sm:self-auto"
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-700 text-xs font-semibold transition-all cursor-pointer self-start sm:self-auto shadow-2xs"
             >
-              <Compass className="w-4 h-4 text-cyan-400" />
+              <Compass className="w-4 h-4 text-sky-600" />
               <span>Use My Current Location</span>
             </button>
           </div>
 
           {/* Quick City Presets */}
           <div className="space-y-1.5">
-            <span className="text-xs font-semibold text-slate-400">Or pick a nearby preset:</span>
+            <span className="text-xs font-semibold text-slate-500">Or pick a nearby preset:</span>
             <div className="flex flex-wrap gap-2">
               {LOCATION_PRESETS.map((city, idx) => (
                 <button
@@ -224,7 +223,7 @@ export default function SettingsPage() {
                       }
                     });
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 border border-slate-700 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 border border-slate-200 transition-colors cursor-pointer shadow-2xs"
                 >
                   {city.name}
                 </button>
@@ -235,7 +234,7 @@ export default function SettingsPage() {
           {/* Coordinate Inputs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-2">
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-slate-300">
+              <label className="block text-xs font-semibold text-slate-700">
                 Latitude (° North / South)
               </label>
               <input
@@ -246,13 +245,13 @@ export default function SettingsPage() {
                   ...config,
                   observer: { ...config.observer, latitude: parseFloat(e.target.value) || 0 }
                 })}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-base font-medium text-white focus:outline-none focus:border-cyan-400"
+                className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-base font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
               />
               <p className="text-[11px] text-slate-400">Values between -90° and +90°.</p>
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-slate-300">
+              <label className="block text-xs font-semibold text-slate-700">
                 Longitude (° East / West)
               </label>
               <input
@@ -263,13 +262,13 @@ export default function SettingsPage() {
                   ...config,
                   observer: { ...config.observer, longitude: parseFloat(e.target.value) || 0 }
                 })}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-base font-medium text-white focus:outline-none focus:border-cyan-400"
+                className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-base font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
               />
               <p className="text-[11px] text-slate-400">Values between -180° and +180°.</p>
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-slate-300">
+              <label className="block text-xs font-semibold text-slate-700">
                 Height (meters ASL)
               </label>
               <input
@@ -280,13 +279,13 @@ export default function SettingsPage() {
                   ...config,
                   observer: { ...config.observer, altitudeMeters: parseFloat(e.target.value) || 0 }
                 })}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-base font-medium text-white focus:outline-none focus:border-cyan-400"
+                className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-base font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
               />
               <p className="text-[11px] text-slate-400">Ground height in meters.</p>
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-slate-300">
+              <label className="block text-xs font-semibold text-slate-700">
                 Min Elevation Mask (°)
               </label>
               <input
@@ -299,7 +298,7 @@ export default function SettingsPage() {
                   ...config,
                   observer: { ...config.observer, minElevationMaskDeg: parseFloat(e.target.value) || 10 }
                 })}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-base font-medium text-white focus:outline-none focus:border-cyan-400"
+                className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-base font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
               />
               <p className="text-[11px] text-slate-400">Ignore passes below this angle (default 10°).</p>
             </div>
@@ -307,33 +306,33 @@ export default function SettingsPage() {
         </div>
 
         {/* Section 2: Advanced Calibration (Collapsed by default) */}
-        <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden transition-all">
+        <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-sm transition-all">
           <button
             type="button"
             onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
-            className="w-full flex items-center justify-between p-5 sm:p-6 text-left hover:bg-slate-800/40 transition-colors cursor-pointer"
+            className="w-full flex items-center justify-between p-5 sm:p-6 text-left hover:bg-slate-50 transition-colors cursor-pointer"
           >
             <div>
-              <div className="text-base font-bold text-white flex items-center gap-2">
+              <div className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <span>Advanced Calibration (Motor Steps & Speed)</span>
-                <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-normal">Optional</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-semibold">Optional</span>
               </div>
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-slate-500">
                 Fine-tune motor gear ratios, maximum speeds, and zero-angle offsets.
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
               <span>{isAdvancedOpen ? 'Hide' : 'Show'}</span>
               {isAdvancedOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </div>
           </button>
 
           {isAdvancedOpen && (
-            <div className="p-5 sm:p-6 pt-0 border-t border-slate-800/80 space-y-5">
+            <div className="p-5 sm:p-6 pt-0 border-t border-slate-100 space-y-5">
               {/* Caution Banner */}
-              <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs mt-4">
-                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs mt-4">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <span>
                   <strong>Warning:</strong> The default settings match the official 3D-printed gears (3.57:1) and 28BYJ-48 motors. Changing these incorrectly will cause the antenna to point in the wrong direction.
                 </span>
@@ -341,7 +340,7 @@ export default function SettingsPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-slate-300">
+                  <label className="block text-xs font-semibold text-slate-700">
                     Left/Right Motor Steps Per Degree
                   </label>
                   <input
@@ -352,13 +351,13 @@ export default function SettingsPage() {
                       ...config,
                       motion: { ...config.motion, azimuthStepsPerDegree: parseFloat(e.target.value) || 0 }
                     })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium text-white focus:outline-none focus:border-cyan-400"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
                   />
                   <p className="text-[11px] text-slate-400">Default is ~40.25 steps per degree.</p>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-slate-300">
+                  <label className="block text-xs font-semibold text-slate-700">
                     Up/Down Motor Steps Per Degree
                   </label>
                   <input
@@ -369,13 +368,13 @@ export default function SettingsPage() {
                       ...config,
                       motion: { ...config.motion, elevationStepsPerDegree: parseFloat(e.target.value) || 0 }
                     })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium text-white focus:outline-none focus:border-cyan-400"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
                   />
                   <p className="text-[11px] text-slate-400">Default is ~40.42 steps per degree.</p>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-slate-300">
+                  <label className="block text-xs font-semibold text-slate-700">
                     Max Movement Speed (°/second)
                   </label>
                   <input
@@ -392,13 +391,13 @@ export default function SettingsPage() {
                         maxElevationSpeedDegS: parseFloat(e.target.value) || 0
                       }
                     })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium text-white focus:outline-none focus:border-cyan-400"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
                   />
                   <p className="text-[11px] text-slate-400">Keep under 5.0°/s to prevent stepper stall.</p>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-slate-300">
+                  <label className="block text-xs font-semibold text-slate-700">
                     Gear Slack Compensation (Backlash °)
                   </label>
                   <input
@@ -409,7 +408,7 @@ export default function SettingsPage() {
                       ...config,
                       motion: { ...config.motion, backlashCompensationDeg: parseFloat(e.target.value) || 0 }
                     })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium text-white focus:outline-none focus:border-cyan-400"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
                   />
                   <p className="text-[11px] text-slate-400">Extra rotation when reversing direction (~0.5°).</p>
                 </div>
@@ -418,16 +417,16 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* Sticky Action Footer */}
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
-          <div className="text-xs text-slate-300 text-center sm:text-left">
+        {/* Action Footer */}
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+          <div className="text-xs text-slate-600 text-center sm:text-left">
             {hasUnsavedChanges ? (
-              <span className="text-amber-400 font-semibold flex items-center gap-1.5 justify-center sm:justify-start">
-                <AlertTriangle className="w-4 h-4" /> You have unsaved changes.
+              <span className="text-amber-700 font-bold flex items-center gap-1.5 justify-center sm:justify-start">
+                <AlertTriangle className="w-4 h-4 text-amber-500" /> You have unsaved changes.
               </span>
             ) : (
-              <span className="text-emerald-400 flex items-center gap-1.5 justify-center sm:justify-start">
-                <CheckCircle className="w-4 h-4" /> Settings are up to date.
+              <span className="text-emerald-700 font-bold flex items-center gap-1.5 justify-center sm:justify-start">
+                <CheckCircle className="w-4 h-4 text-emerald-500" /> Settings are up to date.
               </span>
             )}
           </div>
@@ -437,7 +436,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={handleDiscard}
-                className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-colors cursor-pointer"
+                className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition-colors cursor-pointer"
               >
                 Discard
               </button>
@@ -446,7 +445,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={saving || !hasUnsavedChanges}
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 text-sm font-bold shadow-lg transition-all cursor-pointer disabled:cursor-not-allowed"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 active:bg-sky-700 disabled:bg-slate-100 disabled:text-slate-400 text-white text-sm font-bold shadow-md shadow-sky-500/15 transition-all cursor-pointer disabled:cursor-not-allowed"
             >
               <CheckCircle className="w-4 h-4" />
               <span>{saving ? 'Saving...' : 'Save Settings'}</span>
