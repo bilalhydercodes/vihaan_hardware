@@ -12,7 +12,9 @@ import {
   AlertTriangle,
   CheckCircle,
   Activity,
-  X
+  X,
+  Compass,
+  Check
 } from '@/components/ui/icons';
 
 export default function ControlPage() {
@@ -23,16 +25,18 @@ export default function ControlPage() {
   const isOffline = connectionStatus !== 'connected';
   const isUnauthenticated = !authToken;
   const isMoving = status?.state === 'SLEWING' || status?.state === 'HOMING';
+  const isTracking = status?.state === 'TRACKING';
+  const isHomed = status?.homed;
 
   const isDisabled = isOffline || isUnauthenticated || isMoving;
 
   let disabledReason: string | undefined;
   if (isOffline) {
-    disabledReason = 'Tracker is not connected. Check that it is switched on and connected to your Wi-Fi.';
+    disabledReason = 'Tracker offline. Connect your tracker to the network to enable controls.';
   } else if (isUnauthenticated) {
-    disabledReason = 'Motor control is locked for safety. Please enter your password token to enable controls.';
+    disabledReason = 'Motor control is locked for safety. Please enter password token.';
   } else if (isMoving) {
-    disabledReason = `The antenna is currently ${status?.state === 'HOMING' ? 'resetting position' : 'moving'}. Please wait a moment.`;
+    disabledReason = `Antenna is currently ${status?.state === 'HOMING' ? 'calibrating limits' : 'moving'}. Please wait.`;
   }
 
   const handleError = (msg: string) => {
@@ -47,70 +51,94 @@ export default function ControlPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Header bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+    <div className="space-y-6 max-w-6xl mx-auto">
+      {/* Top Header Card */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
-            <Radio className="w-6 h-6 text-cyan-400" />
-            Control Tracker
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-sky-50 border border-sky-100 text-sky-600">
+              <Radio className="w-5 h-5" />
+            </div>
+            Antenna Control Station
           </h1>
-          <p className="text-sm text-slate-300 mt-1">
-            Start or stop tracking, pick which satellite to follow, or reset the antenna position.
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Autonomous orbit tracking, constellation mission selection, and manual axis positioning.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          <div className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-            <span>State: </span>
-            <strong className="text-white font-semibold">
-              {status?.state === 'TRACKING' ? 'Tracking' : status?.state === 'SLEWING' ? 'Moving' : status?.state === 'HOMING' ? 'Resetting' : 'Ready'}
+        {/* Status badges */}
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {/* Connection */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                !isOffline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+              }`}
+            />
+            <span className="font-semibold">{!isOffline ? 'Connected' : 'Offline'}</span>
+          </div>
+
+          {/* Mount State */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700">
+            <span className="text-slate-400 font-medium">State:</span>
+            <strong className="text-slate-900 font-bold">
+              {isTracking ? 'Tracking' : status?.state === 'SLEWING' ? 'Moving' : status?.state === 'HOMING' ? 'Calibrating' : 'Ready'}
             </strong>
+          </div>
+
+          {/* Limit switches */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700">
+            {isHomed ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-600 font-bold" />
+                <span className="font-semibold text-emerald-700">0° Calibrated</span>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                <span className="font-semibold text-amber-700">Not Calibrated</span>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Disabled Reason Banner */}
-      {isDisabled && (
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-amber-200">
+      {/* Unauthenticated Security Banner (only when connected but locked) */}
+      {!isOffline && isUnauthenticated && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-amber-900 shadow-xs">
           <div className="flex items-center gap-3">
-            {isOffline ? (
-              <WifiOff className="w-5 h-5 text-amber-400 shrink-0" />
-            ) : isUnauthenticated ? (
-              <Lock className="w-5 h-5 text-amber-400 shrink-0" />
-            ) : (
-              <Activity className="w-5 h-5 text-cyan-400 animate-spin shrink-0" />
-            )}
+            <Lock className="w-5 h-5 text-amber-600 shrink-0" />
             <div>
-              <strong className="font-bold text-amber-100 block">Controls Temporarily Locked</strong>
-              <span>{disabledReason}</span>
+              <strong className="font-bold text-amber-950 block">Motor Controls Locked for Safety</strong>
+              <span className="text-xs text-amber-800">
+                Enter your password token to authenticate and activate motor movement controls.
+              </span>
             </div>
           </div>
 
-          {isUnauthenticated && (
-            <button
-              onClick={() => setTokenModalOpen(true)}
-              className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-colors cursor-pointer shrink-0"
-            >
-              Enter Password Token
-            </button>
-          )}
+          <button
+            onClick={() => setTokenModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-colors cursor-pointer shrink-0 shadow-sm"
+          >
+            Enter Password Token
+          </button>
         </div>
       )}
 
-      {/* Error Alert */}
+      {/* Runtime Action Error Alert (only upon action failures) */}
       {errorMessage && (
-        <div className="p-4 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-sm flex items-center justify-between gap-3">
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center justify-between gap-3 shadow-xs animate-fadeIn">
           <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
             <div>
-              <strong className="font-bold text-rose-100 block">Action Failed</strong>
-              <span>{errorMessage}</span>
+              <strong className="font-bold text-rose-950 block">Command Notice</strong>
+              <span className="text-xs">{errorMessage}</span>
             </div>
           </div>
           <button
             onClick={() => setErrorMessage(null)}
-            className="p-1 hover:bg-rose-500/20 rounded text-rose-300"
+            className="p-1 hover:bg-rose-100 rounded-lg text-rose-600 cursor-pointer"
+            aria-label="Dismiss"
           >
             <X className="w-4 h-4" />
           </button>
@@ -119,43 +147,50 @@ export default function ControlPage() {
 
       {/* Success Alert */}
       {successMessage && (
-        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-200 text-sm flex items-center justify-between gap-3">
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between gap-3 shadow-xs animate-fadeIn">
           <div className="flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
-            <span>{successMessage}</span>
+            <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span className="font-medium text-xs sm:text-sm">{successMessage}</span>
           </div>
           <button
             onClick={() => setSuccessMessage(null)}
-            className="p-1 hover:bg-emerald-500/20 rounded text-emerald-300"
+            className="p-1 hover:bg-emerald-100 rounded-lg text-emerald-600 cursor-pointer"
+            aria-label="Dismiss"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      {/* Main Controls Section (Start / Stop Tracking & Reset Position) */}
-      <HomingCard
-        disabled={isDisabled}
-        disabledReason={disabledReason}
-        onError={handleError}
-        onSuccess={handleSuccess}
-      />
+      {/* Two-Column Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Mission Tracking & Satellite Target Selection */}
+        <div className="lg:col-span-6 space-y-6">
+          <HomingCard
+            disabled={isDisabled}
+            disabledReason={disabledReason}
+            onError={handleError}
+            onSuccess={handleSuccess}
+          />
 
-      {/* Satellite Picker Dropdown */}
-      <SatelliteSelector
-        disabled={isDisabled}
-        disabledReason={disabledReason}
-        onError={handleError}
-        onSuccess={handleSuccess}
-      />
+          <SatelliteSelector
+            disabled={isDisabled}
+            disabledReason={disabledReason}
+            onError={handleError}
+            onSuccess={handleSuccess}
+          />
+        </div>
 
-      {/* Collapsed Advanced: Manual Move */}
-      <ManualMoveCard
-        disabled={isDisabled}
-        disabledReason={disabledReason}
-        onError={handleError}
-        onSuccess={handleSuccess}
-      />
+        {/* Right Column: Manual Axis Positioning & Motor Calibration */}
+        <div className="lg:col-span-6 space-y-6">
+          <ManualMoveCard
+            disabled={isDisabled}
+            disabledReason={disabledReason}
+            onError={handleError}
+            onSuccess={handleSuccess}
+          />
+        </div>
+      </div>
     </div>
   );
 }

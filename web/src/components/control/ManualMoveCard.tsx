@@ -1,10 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AngleCoordinates } from '@shared/types/tracker';
 import { trackerApi } from '@/lib/api';
 import { useTracker } from '@/context/TrackerContext';
-import { Compass, Radio, Sliders, AlertTriangle, ChevronDown, ChevronUp } from '@/components/ui/icons';
+import {
+  Compass,
+  Radio,
+  Sliders,
+  AlertTriangle,
+  Navigation
+} from '@/components/ui/icons';
 import { ConfirmModal } from './ConfirmModal';
 
 interface ManualMoveCardProps {
@@ -15,23 +20,29 @@ interface ManualMoveCardProps {
 }
 
 export function ManualMoveCard({ disabled, disabledReason, onError, onSuccess }: ManualMoveCardProps) {
-  const { status, telemetry, refreshStatus } = useTracker();
+  const { status, telemetry, refreshStatus, connectionStatus } = useTracker();
+  const isConnected = connectionStatus === 'connected';
 
-  const curAz = telemetry?.currentAngles.azimuth ?? status?.currentAngles.azimuth ?? 0;
-  const curEl = telemetry?.currentAngles.elevation ?? status?.currentAngles.elevation ?? 0;
+  const curAz = isConnected
+    ? (telemetry?.currentAngles.azimuth ?? status?.currentAngles.azimuth ?? 0)
+    : null;
+  const curEl = isConnected
+    ? (telemetry?.currentAngles.elevation ?? status?.currentAngles.elevation ?? 0)
+    : null;
 
-  const [isOpen, setIsOpen] = useState(false); // Collapsed by default
   const [targetAz, setTargetAz] = useState<number>(180);
   const [targetEl, setTargetEl] = useState<number>(45);
-  const [speed, setSpeed] = useState<number>(3.5);
+  const [speed, setSpeed] = useState<number>(2.5);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Large Move Confirmation Dialog state (>30°)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const calculateDelta = (az: number, el: number) => {
-    const dAz = Math.abs(az - curAz);
-    const dEl = Math.abs(el - curEl);
+    const baseAz = curAz ?? 0;
+    const baseEl = curEl ?? 0;
+    const dAz = Math.abs(az - baseAz);
+    const dEl = Math.abs(el - baseEl);
     return Math.sqrt(dAz * dAz + dEl * dEl);
   };
 
@@ -44,7 +55,7 @@ export function ManualMoveCard({ disabled, disabledReason, onError, onSuccess }:
         speedDegS: speed
       });
       await refreshStatus();
-      onSuccess(`Moving antenna to Left/Right: ${targetAz.toFixed(0)}°, Up/Down: ${targetEl.toFixed(0)}°`);
+      onSuccess(`Moving antenna to Azimuth: ${targetAz.toFixed(0)}°, Elevation: ${targetEl.toFixed(0)}°`);
     } catch (err: any) {
       onError(`Could not move motors: ${err.message}. Check your token.`);
     } finally {
@@ -57,13 +68,12 @@ export function ManualMoveCard({ disabled, disabledReason, onError, onSuccess }:
     e.preventDefault();
     if (disabled) return;
 
-    // Validate client-side limits
     if (targetAz < 0 || targetAz > 360) {
-      onError('Left/Right direction must be between 0° and 360°');
+      onError('Azimuth angle must be between 0° and 360°');
       return;
     }
     if (targetEl < 0 || targetEl > 90) {
-      onError('Up/Down angle must be between 0° and 90°');
+      onError('Elevation angle must be between 0° and 90°');
       return;
     }
     if (speed <= 0 || speed > 5.0) {
@@ -71,7 +81,6 @@ export function ManualMoveCard({ disabled, disabledReason, onError, onSuccess }:
       return;
     }
 
-    // Check if move is > 30 degrees
     const delta = calculateDelta(targetAz, targetEl);
     if (delta > 30.0) {
       setIsConfirmOpen(true);
@@ -80,161 +89,283 @@ export function ManualMoveCard({ disabled, disabledReason, onError, onSuccess }:
     }
   };
 
-  const setPreset = (az: number, el: number) => {
-    setTargetAz(az);
-    setTargetEl(el);
+  const adjustAz = (delta: number) => {
+    setTargetAz((prev) => Math.min(360, Math.max(0, Math.round(prev + delta))));
+  };
+
+  const adjustEl = (delta: number) => {
+    setTargetEl((prev) => Math.min(90, Math.max(0, Math.round(prev + delta))));
   };
 
   const currentDelta = calculateDelta(targetAz, targetEl);
 
   return (
     <>
-      <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden transition-all">
-        {/* Collapsible Header */}
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between p-5 sm:p-6 text-left hover:bg-slate-800/40 transition-colors cursor-pointer"
-        >
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm">
+        {/* Header */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-slate-800 text-slate-300">
-              <Sliders className="w-5 h-5 text-cyan-400" />
+            <div className="p-2.5 rounded-xl bg-sky-50 border border-sky-100 text-sky-600">
+              <Sliders className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-base font-bold text-white flex items-center gap-2">
-                <span>Advanced: Manual Aiming</span>
-                <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-normal">Optional</span>
-              </div>
-              <div className="text-xs text-slate-400">
-                Point the antenna directly to any custom angle yourself.
-              </div>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">Manual Positioning</h2>
+              <p className="text-xs text-slate-500">Direct dual-axis stepper motor aiming</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-            <span>{isOpen ? 'Hide' : 'Show'}</span>
-            {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          {/* Current Angles readout */}
+          <div className="text-right">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Current Angles</span>
+            <span className="text-xs font-mono font-bold text-slate-700">
+              {isConnected && curAz !== null && curEl !== null
+                ? `Az ${curAz.toFixed(1)}° / El ${curEl.toFixed(1)}°`
+                : '— / —'}
+            </span>
           </div>
-        </button>
+        </div>
 
-        {/* Collapsed Body */}
-        {isOpen && (
-          <div className="p-5 sm:p-6 pt-0 border-t border-slate-800/80 space-y-5">
-            {/* Quick Aim Presets */}
-            <div className="space-y-2 pt-4">
-              <span className="text-xs font-semibold text-slate-300 block">Quick Direction Presets</span>
-              <div className="flex flex-wrap gap-2">
+        <form onSubmit={onSubmitForm} className="space-y-5">
+          {/* 1. Azimuth (Pan / Yaw) */}
+          <div className="space-y-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Compass className="w-4 h-4 text-sky-600" />
+                Azimuth / Yaw (0° &ndash; 360°)
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-extrabold text-sky-600 font-mono px-2 py-0.5 rounded-md bg-sky-50 border border-sky-200">
+                  {targetAz}°
+                </span>
+              </div>
+            </div>
+
+            {/* Slider */}
+            <input
+              type="range"
+              min="0"
+              max="360"
+              step="1"
+              value={targetAz}
+              onChange={(e) => setTargetAz(Number(e.target.value))}
+              disabled={disabled}
+              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-500 disabled:opacity-50"
+            />
+
+            {/* Steppers & Presets */}
+            <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1">
+              <div className="flex items-center gap-1">
                 {[
-                  { label: 'Parked (0°, 0°)', az: 0, el: 0 },
-                  { label: 'North (0°, 45°)', az: 0, el: 45 },
-                  { label: 'East (90°, 45°)', az: 90, el: 45 },
-                  { label: 'South (180°, 45°)', az: 180, el: 45 },
-                  { label: 'West (270°, 45°)', az: 270, el: 45 },
-                  { label: 'Straight Up (90°)', az: curAz, el: 90 },
-                ].map((p, idx) => (
+                  { label: 'N (0°)', az: 0 },
+                  { label: 'E (90°)', az: 90 },
+                  { label: 'S (180°)', az: 180 },
+                  { label: 'W (270°)', az: 270 }
+                ].map((p) => (
                   <button
-                    key={idx}
+                    key={p.label}
                     type="button"
-                    onClick={() => setPreset(p.az, p.el)}
+                    onClick={() => setTargetAz(p.az)}
                     disabled={disabled}
-                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-xs font-medium text-slate-200 border border-slate-700 transition-colors cursor-pointer"
+                    className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer border ${
+                      targetAz === p.az
+                        ? 'bg-sky-500 text-white border-sky-500'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
                   >
                     {p.label}
                   </button>
                 ))}
               </div>
+
+              {/* Fine nudge */}
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => adjustAz(-10)}
+                  disabled={disabled}
+                  className="px-1.5 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-[10px] font-mono font-bold text-slate-600"
+                >
+                  -10°
+                </button>
+                <button
+                  type="button"
+                  onClick={() => adjustAz(-1)}
+                  disabled={disabled}
+                  className="px-1.5 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-[10px] font-mono font-bold text-slate-600"
+                >
+                  -1°
+                </button>
+                <button
+                  type="button"
+                  onClick={() => adjustAz(1)}
+                  disabled={disabled}
+                  className="px-1.5 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-[10px] font-mono font-bold text-slate-600"
+                >
+                  +1°
+                </button>
+                <button
+                  type="button"
+                  onClick={() => adjustAz(10)}
+                  disabled={disabled}
+                  className="px-1.5 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-[10px] font-mono font-bold text-slate-600"
+                >
+                  +10°
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Elevation (Tilt / Pitch) */}
+          <div className="space-y-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Radio className="w-4 h-4 text-emerald-600" />
+                Elevation / Tilt (0° &ndash; 90°)
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-extrabold text-emerald-600 font-mono px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200">
+                  {targetEl}°
+                </span>
+              </div>
             </div>
 
-            <form onSubmit={onSubmitForm} className="space-y-4">
-              {/* Left/Right Direction Slider */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-medium">
-                  <span className="text-slate-300 flex items-center gap-1.5">
-                    <Compass className="w-4 h-4 text-cyan-400" /> Left / Right Direction (0° to 360°)
-                  </span>
-                  <span className="text-base font-bold text-cyan-300 font-mono">{targetAz}°</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="360"
-                  step="1"
-                  value={targetAz}
-                  onChange={(e) => setTargetAz(Number(e.target.value))}
-                  disabled={disabled}
-                  className="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-cyan-400 disabled:opacity-50"
-                />
+            {/* Slider */}
+            <input
+              type="range"
+              min="0"
+              max="90"
+              step="1"
+              value={targetEl}
+              onChange={(e) => setTargetEl(Number(e.target.value))}
+              disabled={disabled}
+              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-500 disabled:opacity-50"
+            />
+
+            {/* Steppers & Presets */}
+            <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1">
+              <div className="flex items-center gap-1">
+                {[
+                  { label: 'Park (0°)', el: 0 },
+                  { label: '30°', el: 30 },
+                  { label: '45°', el: 45 },
+                  { label: 'Zenith (90°)', el: 90 }
+                ].map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => setTargetEl(p.el)}
+                    disabled={disabled}
+                    className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer border ${
+                      targetEl === p.el
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
               </div>
 
-              {/* Up/Down Angle Slider */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-medium">
-                  <span className="text-slate-300 flex items-center gap-1.5">
-                    <Radio className="w-4 h-4 text-emerald-400" /> Up / Down Angle (0° to 90°)
-                  </span>
-                  <span className="text-base font-bold text-emerald-300 font-mono">{targetEl}°</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="90"
-                  step="1"
-                  value={targetEl}
-                  onChange={(e) => setTargetEl(Number(e.target.value))}
+              {/* Fine nudge */}
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => adjustEl(-5)}
                   disabled={disabled}
-                  className="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-emerald-400 disabled:opacity-50"
-                />
-              </div>
-
-              {/* Speed slider */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-medium">
-                  <span className="text-slate-300">Movement Speed (degrees per second)</span>
-                  <span className="text-xs font-mono text-slate-300">{speed} °/s (Max 5.0)</span>
-                </div>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="5.0"
-                  step="0.5"
-                  value={speed}
-                  onChange={(e) => setSpeed(Number(e.target.value))}
+                  className="px-1.5 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-[10px] font-mono font-bold text-slate-600"
+                >
+                  -5°
+                </button>
+                <button
+                  type="button"
+                  onClick={() => adjustEl(-1)}
                   disabled={disabled}
-                  className="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-cyan-400 disabled:opacity-50"
-                />
-                <p className="text-[11px] text-slate-500">
-                  Keeping speed under 5°/s prevents stepper motors from skipping steps.
-                </p>
+                  className="px-1.5 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-[10px] font-mono font-bold text-slate-600"
+                >
+                  -1°
+                </button>
+                <button
+                  type="button"
+                  onClick={() => adjustEl(1)}
+                  disabled={disabled}
+                  className="px-1.5 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-[10px] font-mono font-bold text-slate-600"
+                >
+                  +1°
+                </button>
+                <button
+                  type="button"
+                  onClick={() => adjustEl(5)}
+                  disabled={disabled}
+                  className="px-1.5 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-[10px] font-mono font-bold text-slate-600"
+                >
+                  +5°
+                </button>
               </div>
-
-              {/* Large Move Notice */}
-              {currentDelta > 30.0 && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>Large turn ({currentDelta.toFixed(0)}°): A confirmation prompt will ask before motors move.</span>
-                </div>
-              )}
-
-              {/* Submit Move Button */}
-              <button
-                type="submit"
-                disabled={disabled || isSubmitting}
-                className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold text-sm transition-all cursor-pointer disabled:cursor-not-allowed"
-              >
-                <Compass className="w-4 h-4" />
-                <span>{isSubmitting ? 'Sending command...' : `Move to ${targetAz}°, ${targetEl}°`}</span>
-              </button>
-            </form>
+            </div>
           </div>
-        )}
+
+          {/* Slew Speed & Delta summary */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-slate-600">Slew Speed:</span>
+              {[
+                { label: '1.0°/s', val: 1.0 },
+                { label: '2.5°/s', val: 2.5 },
+                { label: '4.0°/s', val: 4.0 }
+              ].map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  onClick={() => setSpeed(s.val)}
+                  disabled={disabled}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-mono font-bold border transition-colors ${
+                    speed === s.val
+                      ? 'bg-slate-800 text-white border-slate-800'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            {isConnected && (
+              <span className="text-slate-500 font-mono text-[11px]">
+                Travel Delta: &Delta;{currentDelta.toFixed(0)}°
+              </span>
+            )}
+          </div>
+
+          {/* Large Move Warning Badge */}
+          {currentDelta > 30.0 && isConnected && (
+            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Large angle change (&Delta;{currentDelta.toFixed(0)}°): Confirmation required before moving.</span>
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={disabled || isSubmitting}
+            className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-sky-500 hover:bg-sky-600 disabled:bg-slate-100 disabled:text-slate-400 text-white font-bold text-sm transition-all shadow-sm shadow-sky-500/20 cursor-pointer disabled:cursor-not-allowed"
+          >
+            <Navigation className="w-4 h-4" />
+            <span>
+              {isSubmitting
+                ? 'Sending move command...'
+                : `Drive Antenna to Az ${targetAz}°, El ${targetEl}°`}
+            </span>
+          </button>
+        </form>
       </div>
 
       {/* Confirmation Dialog for Moves > 30 Degrees */}
       <ConfirmModal
         isOpen={isConfirmOpen}
         title="Confirm Large Antenna Move"
-        message={`You are asking the tracker to rotate by ${currentDelta.toFixed(0)}° (Left/Right: ${targetAz}°, Up/Down: ${targetEl}°). Ensure antenna cables are not tangled before moving.`}
-        confirmLabel="Yes, Move Antenna"
+        message={`The antenna will rotate by approximately ${currentDelta.toFixed(0)}° to Azimuth ${targetAz}° and Elevation ${targetEl}°. Confirm your RF cables are clear and unobstructed.`}
+        confirmLabel="Yes, Move Motors"
         variant="warning"
         onConfirm={handleExecuteMove}
         onCancel={() => setIsConfirmOpen(false)}
