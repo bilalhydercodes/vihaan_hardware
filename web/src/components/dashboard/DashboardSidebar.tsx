@@ -176,11 +176,14 @@ export function DashboardSidebar({
         <div className="flex items-center gap-3">
           {/* Satellite Image Avatar */}
           <div className="relative w-12 h-12 shrink-0 flex items-center justify-center p-1 rounded-xl bg-sky-50/60 border border-sky-100 shadow-2xs">
-            <img
-              src="/satellite-isometric.png"
-              alt="Satellite"
-              className="w-full h-full object-contain select-none"
-            />
+            <picture>
+              <source srcSet="/satellite-isometric.webp" type="image/webp" />
+              <img
+                src="/satellite-isometric.png"
+                alt="Satellite"
+                className="w-full h-full object-contain select-none"
+              />
+            </picture>
           </div>
 
           {/* Satellite Selector Dropdown */}

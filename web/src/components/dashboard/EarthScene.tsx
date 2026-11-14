@@ -364,7 +364,7 @@ export default function EarthScene({
       {/* Deep cosmic gradient vignette */}
       <div
         className="absolute inset-0 bg-cover bg-center opacity-45 pointer-events-none mix-blend-screen transition-transform duration-500 ease-out"
-        style={{ backgroundImage: "url('/space-starfield.png')" }}
+        style={{ backgroundImage: "url('/space-starfield.webp')" }}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-[#020817] via-transparent to-[#020817]/60 pointer-events-none" />
 

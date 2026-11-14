@@ -395,7 +395,7 @@ export function SkyMapCard({
                   className={isSatelliteUp ? 'animate-ping' : ''}
                 />
                 <image
-                  href="/satellite-isometric.png"
+                  href="/satellite-isometric.webp"
                   x="-16"
                   y="-12"
                   width="32"
