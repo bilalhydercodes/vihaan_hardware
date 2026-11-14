@@ -20,18 +20,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-[#f0f4f9] text-slate-800 antialiased font-sans selection:bg-sky-500/20 selection:text-sky-900">
+      <body className="min-h-screen flex flex-col bg-[#f0f4f9] text-slate-800 antialiased font-sans selection:bg-sky-500/20 selection:text-sky-900">
         <TrackerProvider>
           <OfflineBanner />
           <WelcomeBanner />
           <Navbar />
           <TokenModal />
-          <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-3 flex flex-col">
             {children}
           </main>
           <JarvisAssistant />
-          <footer className="border-t border-slate-200/80 bg-white mt-16 py-6 text-center text-sm text-slate-500">
-            <div className="w-full max-w-[1600px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <footer className="border-t border-slate-200/80 bg-white mt-auto py-2.5 sm:py-3 text-center text-xs text-slate-500">
+            <div className="w-full max-w-[1600px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
               <div className="font-medium text-slate-600">NAVIC-TRACK &bull; Autonomous 2-Axis Satellite Tracker</div>
               <div className="flex items-center gap-4 text-xs font-medium">
                 <Link href="/about" className="text-sky-600 hover:text-sky-700 underline">
