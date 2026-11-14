@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTracker } from '@/context/TrackerContext';
 import {
   Satellite,
@@ -35,11 +35,33 @@ const moreNavItems = [
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { connectionStatus, authToken, setTokenModalOpen } = useTracker();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isMoreActive = moreNavItems.some((item) => pathname === item.href);
+
+  // Close dropdown cleanly when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setMoreDropdownOpen(false);
+      }
+    }
+    if (moreDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [moreDropdownOpen]);
+
+  const handleMoreNavigation = (href: string) => {
+    setMoreDropdownOpen(false);
+    router.push(href);
+  };
 
   return (
     <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 shadow-xs">
@@ -83,10 +105,10 @@ export function Navbar() {
               })}
 
               {/* "More" Dropdown Menu */}
-              <div className="relative">
+              <div className="relative" ref={dropdownRef}>
                 <button
+                  type="button"
                   onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
-                  onBlur={() => setTimeout(() => setMoreDropdownOpen(false), 200)}
                   className={`flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                     isMoreActive
                       ? 'bg-sky-50 text-sky-700 border border-sky-200 shadow-xs'
@@ -94,7 +116,7 @@ export function Navbar() {
                   }`}
                 >
                   <span>More</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${moreDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {moreDropdownOpen && (
@@ -106,8 +128,11 @@ export function Navbar() {
                         <Link
                           key={item.href}
                           href={item.href}
-                          onClick={() => setMoreDropdownOpen(false)}
-                          className={`flex items-start gap-2.5 px-3.5 py-2 text-sm transition-colors ${
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleMoreNavigation(item.href);
+                          }}
+                          className={`flex items-start gap-2.5 px-3.5 py-2.5 text-sm transition-colors cursor-pointer select-none ${
                             isActive
                               ? 'bg-sky-50 text-sky-700 font-medium'
                               : 'text-slate-700 hover:bg-slate-50'

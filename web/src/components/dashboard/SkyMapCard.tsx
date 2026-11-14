@@ -191,7 +191,14 @@ export function SkyMapCard({
                 <line x1="-4" y1="0" x2="4" y2="0" stroke="#0284c7" strokeWidth="1.2" />
                 <line x1="0" y1="-4" x2="0" y2="4" stroke="#0284c7" strokeWidth="1.2" />
                 <circle r="2" fill="#0284c7" />
-                <text x="0" y="-10" fill="#0284c7" fontSize="10" fontWeight="bold" textAnchor="middle">
+                <text
+                  x="0"
+                  y={currentPos.y < center - maxRadius + 24 ? "14" : "-10"}
+                  fill="#0284c7"
+                  fontSize="10"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                >
                   Aim
                 </text>
               </g>
