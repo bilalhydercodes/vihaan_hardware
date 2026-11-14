@@ -1,7 +1,8 @@
 /*
  * NAVIC-TRACK ESP32 Wi-Fi & Web Bridge for Arduino Rotator
+ * Zero external libraries needed - compiles out of the box!
  * 
- * Hardware Connections:
+ * Hardware Wiring:
  *   ESP32 DevKit                  Arduino Uno
  *   ─────────────                  ───────────
  *   GPIO 16 (ESP_RX)   <═════════  Pin 3 (TX)  [use 1k resistor or 3.3V divider]
@@ -10,7 +11,7 @@
  * 
  * Functions:
  *   - Connects to your Wi-Fi (or starts AP hotspot if not connected)
- *   - Runs WebServer on Port 80 for NAVIC-TRACK website
+ *   - Hosts Port 80 WebServer for the NAVIC-TRACK website
  *   - Communicates with Arduino Uno via Serial2 (Pins 16 & 17) at 9600 Baud
  *   - Reads live real-time antenna angles from Arduino Uno
  *   - USB Serial (115200) allows direct commands from Serial Monitor
@@ -18,7 +19,6 @@
 
 #include <WiFi.h>
 #include <WebServer.h>
-#include <ArduinoJson.h>
 
 // --- PIN DEFINITIONS FOR ARDUINO SERIAL2 ---
 #define ESP_RX 16  // Connects to Arduino Pin 3 (TX)
@@ -104,15 +104,21 @@ void handleMove() {
     return;
   }
 
-  StaticJsonDocument<256> doc;
-  DeserializationError err = deserializeJson(doc, server.arg("plain"));
-  if (err) {
-    sendJsonResponse(400, false, "", "Invalid JSON");
-    return;
+  String body = server.arg("plain");
+  float reqAz = -1.0;
+  float reqEl = -1.0;
+
+  int azIdx = body.indexOf("\"azimuth\"");
+  if (azIdx != -1) {
+    int colon = body.indexOf(':', azIdx);
+    reqAz = body.substring(colon + 1).toFloat();
   }
 
-  float reqAz = doc["azimuth"] | -1.0;
-  float reqEl = doc["elevation"] | -1.0;
+  int elIdx = body.indexOf("\"elevation\"");
+  if (elIdx != -1) {
+    int colon = body.indexOf(':', elIdx);
+    reqEl = body.substring(colon + 1).toFloat();
+  }
 
   if (reqAz < 0.0 || reqAz > 360.0 || reqEl < 0.0 || reqEl > 90.0) {
     sendJsonResponse(400, false, "", "Angles out of range (Az: 0-360, El: 0-90)");
@@ -143,11 +149,14 @@ void handleJog() {
     return;
   }
 
-  StaticJsonDocument<128> doc;
-  deserializeJson(doc, server.arg("plain"));
-  String direction = doc["direction"] | "";
+  String body = server.arg("plain");
+  String direction = "";
+  if (body.indexOf("AZ_CW") != -1) direction = "AZ_CW";
+  else if (body.indexOf("AZ_CCW") != -1) direction = "AZ_CCW";
+  else if (body.indexOf("EL_CW") != -1) direction = "EL_CW";
+  else if (body.indexOf("EL_CCW") != -1) direction = "EL_CCW";
 
-  if (direction == "AZ_CW" || direction == "AZ_CCW" || direction == "EL_CW" || direction == "EL_CCW") {
+  if (direction.length() > 0) {
     Serial2.println(direction);
     Serial.print("[HTTP -> Arduino] ");
     Serial.println(direction);
