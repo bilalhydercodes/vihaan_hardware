@@ -8,7 +8,8 @@ import {
   selectSatellite,
   setTrackingState,
   setManualTarget,
-  resetHome
+  resetHome,
+  getLiveLogs
 } from '@/lib/server/state';
 import {
   fetchCelestrakPresets,
@@ -110,7 +111,7 @@ export async function GET(
   }
 
   if (path === 'logs') {
-    return success([]);
+    return success(getLiveLogs());
   }
 
   return failure(`Endpoint /api/v1/${path} not found`, 404);

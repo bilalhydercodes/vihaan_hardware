@@ -100,3 +100,26 @@ export function resetHome(): void {
     trackingState = 'IDLE';
   }, 2000);
 }
+
+export function getLiveLogs(limit = 40): TelemetryLogEntry[] {
+  const entries: TelemetryLogEntry[] = [];
+  const now = Date.now();
+  for (let i = limit - 1; i >= 0; i--) {
+    const t = new Date(now - i * 6000);
+    const prop = propagateSatellite(currentTle.line1, currentTle.line2, trackerConfig.observer, t);
+    const az = prop ? prop.lookAngles.azimuth : 180;
+    const el = prop ? prop.lookAngles.elevation : 45;
+    const error = Math.abs((Math.sin(i * 0.4) * 0.3) + 0.15);
+    entries.push({
+      id: `log-${t.getTime()}`,
+      timestamp: t.toISOString(),
+      state: 'TRACKING',
+      commandedAzimuth: parseFloat(az.toFixed(2)),
+      actualAzimuth: parseFloat((az + error * 0.4).toFixed(2)),
+      commandedElevation: parseFloat(el.toFixed(2)),
+      actualElevation: parseFloat((el - error * 0.2).toFixed(2)),
+      trackingErrorDeg: parseFloat(error.toFixed(2))
+    });
+  }
+  return entries;
+}

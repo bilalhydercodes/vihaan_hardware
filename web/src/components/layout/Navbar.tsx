@@ -43,25 +43,23 @@ export function Navbar() {
 
   const isMoreActive = moreNavItems.some((item) => pathname === item.href);
 
-  // Close dropdown cleanly when clicking outside
+  // Close dropdown cleanly when clicking or tapping outside
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setMoreDropdownOpen(false);
       }
     }
     if (moreDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [moreDropdownOpen]);
 
-  const handleMoreNavigation = (href: string) => {
-    setMoreDropdownOpen(false);
-    router.push(href);
-  };
 
   return (
     <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 shadow-xs">
@@ -128,10 +126,7 @@ export function Navbar() {
                         <Link
                           key={item.href}
                           href={item.href}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleMoreNavigation(item.href);
-                          }}
+                          onClick={() => setMoreDropdownOpen(false)}
                           className={`flex items-start gap-2.5 px-3.5 py-2.5 text-sm transition-colors cursor-pointer select-none ${
                             isActive
                               ? 'bg-sky-50 text-sky-700 font-medium'

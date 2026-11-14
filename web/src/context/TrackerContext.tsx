@@ -31,7 +31,19 @@ interface TrackerContextType {
 
 const TrackerContext = createContext<TrackerContextType | undefined>(undefined);
 
-const WS_URL = process.env.NEXT_PUBLIC_TRACKER_WS_URL || 'ws://localhost:8080/ws';
+function getValidWsUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+  const envWs = process.env.NEXT_PUBLIC_TRACKER_WS_URL;
+  if (envWs && envWs.trim() !== '') {
+    if (envWs.includes('navic-tracker-live.trycloudflare.com')) return null;
+    return envWs;
+  }
+  // On HTTPS (production Vercel), do not attempt ws://localhost (blocked by browser mixed-content)
+  if (window.location.protocol === 'https:') {
+    return null;
+  }
+  return 'ws://localhost:8080/ws';
+}
 
 export function TrackerProvider({ children }: { children: React.ReactNode }) {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionState>('connecting');
@@ -47,6 +59,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isUnmountedRef = useRef(false);
+  const lastPacketTimeRef = useRef<number>(0);
 
   // Initialize stored token on mount
   useEffect(() => {
@@ -89,10 +102,12 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
           isVisible: data.isVisible,
           imu: data.imu
         });
+        lastPacketTimeRef.current = Date.now();
         setLastPacketTime(Date.now());
       }
     } catch {
-      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      const hasRecentTelemetry = Date.now() - lastPacketTimeRef.current < 4000;
+      if (!hasRecentTelemetry && (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN)) {
         setConnectionStatus('disconnected');
       }
     }
@@ -138,6 +153,12 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
   const connectWs = useCallback(() => {
     if (isUnmountedRef.current) return;
 
+    const wsUrl = getValidWsUrl();
+    if (!wsUrl) {
+      // In serverless / cloud mode without external WebSocket, rely directly on HTTP polling
+      return;
+    }
+
     // If socket is already OPEN or CONNECTING, do not reopen!
     if (
       wsRef.current &&
@@ -149,10 +170,8 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     clearTimers();
     cleanupSocket();
 
-    setConnectionStatus('connecting');
-
     try {
-      const ws = new WebSocket(WS_URL);
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -169,6 +188,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
           const packet: LeanTelemetryPacket = JSON.parse(event.data);
           const decoded = decodeTelemetryPacket(packet);
           setTelemetry(decoded);
+          lastPacketTimeRef.current = Date.now();
           setLastPacketTime(Date.now());
         } catch (e) {
           console.error('Failed to parse telemetry packet:', e);
@@ -177,7 +197,10 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
 
       ws.onclose = () => {
         if (isUnmountedRef.current) return;
-        setConnectionStatus('disconnected');
+        const hasRecentTelemetry = Date.now() - lastPacketTimeRef.current < 4000;
+        if (!hasRecentTelemetry) {
+          setConnectionStatus('disconnected');
+        }
 
         // Only schedule reconnect if not already scheduled
         if (!reconnectTimerRef.current) {
@@ -207,11 +230,17 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
 
       ws.onerror = () => {
         if (isUnmountedRef.current) return;
-        setConnectionStatus('disconnected');
+        const hasRecentTelemetry = Date.now() - lastPacketTimeRef.current < 4000;
+        if (!hasRecentTelemetry) {
+          setConnectionStatus('disconnected');
+        }
       };
     } catch (err) {
       if (isUnmountedRef.current) return;
-      setConnectionStatus('disconnected');
+      const hasRecentTelemetry = Date.now() - lastPacketTimeRef.current < 4000;
+      if (!hasRecentTelemetry) {
+        setConnectionStatus('disconnected');
+      }
     }
   }, [clearTimers, cleanupSocket, refreshStatus]);
 

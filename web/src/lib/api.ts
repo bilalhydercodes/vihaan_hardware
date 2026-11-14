@@ -18,14 +18,18 @@ import { setCachedSatelliteName } from './decoder';
 
 function getBaseUrl(): string {
   if (typeof window !== 'undefined') {
-    const envUrl = process.env.NEXT_PUBLIC_TRACKER_URL;
+    const envUrl = process.env.NEXT_PUBLIC_TRACKER_URL?.trim();
     if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('navic-tracker-live.trycloudflare.com')) {
-      return envUrl;
+      return envUrl.replace(/\/+$/, '');
     }
     // Default to relative URL on current origin (Vercel Serverless API routes)
     return '';
   }
-  return process.env.NEXT_PUBLIC_TRACKER_URL || 'http://localhost:8080';
+  const serverEnv = process.env.NEXT_PUBLIC_TRACKER_URL?.trim();
+  if (serverEnv && !serverEnv.includes('navic-tracker-live.trycloudflare.com')) {
+    return serverEnv.replace(/\/+$/, '');
+  }
+  return 'http://localhost:8080';
 }
 
 const BASE_URL = getBaseUrl();
