@@ -16,7 +16,19 @@ import {
 } from '@shared/types/tracker';
 import { setCachedSatelliteName } from './decoder';
 
-const BASE_URL = process.env.NEXT_PUBLIC_TRACKER_URL || 'http://localhost:8080';
+function getBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    const envUrl = process.env.NEXT_PUBLIC_TRACKER_URL;
+    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('navic-tracker-live.trycloudflare.com')) {
+      return envUrl;
+    }
+    // Default to relative URL on current origin (Vercel Serverless API routes)
+    return '';
+  }
+  return process.env.NEXT_PUBLIC_TRACKER_URL || 'http://localhost:8080';
+}
+
+const BASE_URL = getBaseUrl();
 
 export function getStoredAuthToken(): string | null {
   if (typeof window === 'undefined') return null;

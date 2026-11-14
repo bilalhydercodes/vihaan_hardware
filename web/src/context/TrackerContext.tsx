@@ -74,8 +74,27 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       if (data.satelliteName) {
         setCachedSatelliteName(data.satelliteName);
       }
-    } catch (err) {
-      // Offline or network error
+      // When WebSocket is not open (e.g. on serverless Vercel deployment), synthesize telemetry from HTTP
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        setConnectionStatus('connected');
+        setTelemetry({
+          timestamp: Date.now(),
+          state: data.state,
+          homed: data.homed,
+          currentAngles: data.currentAngles,
+          targetAngles: data.targetAngles,
+          trackingErrorDeg: Math.abs(data.targetAngles.azimuth - data.currentAngles.azimuth),
+          satelliteName: data.satelliteName,
+          satellitePosition: data.satellitePosition,
+          isVisible: data.isVisible,
+          imu: data.imu
+        });
+        setLastPacketTime(Date.now());
+      }
+    } catch {
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        setConnectionStatus('disconnected');
+      }
     }
   }, []);
 
@@ -208,8 +227,8 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     connectWs();
     refreshStatus();
 
-    // Poll status periodically every 10 seconds to keep satellite names & uptime updated
-    const statusInterval = setInterval(refreshStatus, 10000);
+    // Poll status periodically (every 1.5 seconds) to keep telemetry live when WebSockets are unavailable (e.g. on Vercel)
+    const statusInterval = setInterval(refreshStatus, 1500);
 
     return () => {
       isUnmountedRef.current = true;
