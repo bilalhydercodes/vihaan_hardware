@@ -103,14 +103,14 @@ function Earth() {
 
   return (
     <group rotation={[0, -Math.PI / 2, 0]}>
-      {/* Photorealistic Solid Earth Sphere */}
+      {/* Photorealistic Solid Earth Sphere with Vibrant Brightness */}
       <mesh>
         <sphereGeometry args={[R, 128, 128]} />
         <meshStandardMaterial
           map={earthTexture || undefined}
-          roughness={0.7}
-          metalness={0.1}
-          color={earthTexture ? '#ffffff' : '#1e3a8a'}
+          roughness={0.3}
+          metalness={0.05}
+          color={earthTexture ? '#ffffff' : '#38bdf8'}
         />
       </mesh>
 
@@ -120,7 +120,7 @@ function Earth() {
         <meshStandardMaterial
           map={cloudsTexture || undefined}
           transparent
-          opacity={0.3}
+          opacity={0.35}
           depthWrite={false}
           color="#ffffff"
         />
@@ -132,7 +132,7 @@ function Earth() {
         <meshBasicMaterial
           color="#38bdf8"
           transparent
-          opacity={0.15}
+          opacity={0.22}
           side={THREE.BackSide}
           blending={THREE.AdditiveBlending}
         />
@@ -319,20 +319,27 @@ export default function EarthScene({
   }, [groundStation]);
 
   return (
-    <div className="relative w-full h-[360px] sm:h-[400px] rounded-2xl overflow-hidden select-none bg-[#020817]">
+    <div
+      className="relative w-full h-[480px] sm:h-[530px] lg:h-[560px] rounded-2xl overflow-hidden select-none bg-cover bg-center border border-slate-900/10 shadow-inner"
+      style={{ backgroundImage: "url('/space-starfield.png')" }}
+    >
+      {/* Soft atmospheric space vignette */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-slate-950/20 pointer-events-none" />
+
       <Canvas
-        camera={{ position: [0, 1.5, 5.5], fov: 42 }}
+        camera={{ position: [0, 0.6, 4.0], fov: 44 }}
         gl={{ antialias: true, alpha: true }}
       >
-        <color attach="background" args={['#020817']} />
+        {/* High-Luminosity Studio Lighting for Radiant Earth */}
+        <ambientLight intensity={1.5} />
+        <hemisphereLight args={['#ffffff', '#0f172a', 1.2]} />
+        <directionalLight position={[6, 4, 6]} intensity={3.2} />
+        <directionalLight position={[-6, 3, -4]} intensity={1.8} color="#93c5fd" />
+        <directionalLight position={[0, -5, 4]} intensity={1.2} color="#e0f2fe" />
+        <directionalLight position={[0, 1, 5]} intensity={1.0} />
 
-        {/* Ambient & Sunlight Lighting */}
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[6, 3, 5]} intensity={2.2} />
-        <directionalLight position={[-6, -2, -4]} intensity={0.3} color="#38bdf8" />
-
-        {/* Starfield Backdrop */}
-        <Stars radius={80} depth={50} count={3000} factor={4} fade speed={0.5} />
+        {/* Space Depth Stars */}
+        <Stars radius={80} depth={50} count={1800} factor={4} fade speed={0.4} />
 
         {/* 3D Photorealistic Earth */}
         <Earth />
@@ -362,14 +369,14 @@ export default function EarthScene({
           enableRotate
           enableZoom
           enablePan={false}
-          minDistance={2.6}
-          maxDistance={12}
+          minDistance={2.4}
+          maxDistance={10}
           rotateSpeed={0.8}
         />
       </Canvas>
 
       {/* Floating 3D Interaction Tip Pill */}
-      <div className="absolute top-3 left-3 z-10 bg-slate-950/70 backdrop-blur-md border border-white/10 px-2.5 py-1 rounded-lg text-slate-300 font-mono text-[10px] pointer-events-none flex items-center gap-1.5">
+      <div className="absolute top-3 left-3 z-10 bg-slate-950/70 backdrop-blur-md border border-white/10 px-2.5 py-1 rounded-lg text-slate-300 font-mono text-[10px] pointer-events-none flex items-center gap-1.5 shadow-sm">
         <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
         <span>3D Earth &bull; Drag to rotate &bull; Scroll to zoom</span>
       </div>

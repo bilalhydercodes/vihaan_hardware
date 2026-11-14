@@ -156,7 +156,7 @@ export function SkyMapCard({
       {/* Main Visual Display */}
       {mode === '3d' ? (
         /* 1. Actual Interactive 3D WebGL Earth Scene with SGP4 Orbit & Free Mouse Rotation */
-        <div className="relative w-full h-[360px] sm:h-[400px] rounded-2xl overflow-hidden select-none border border-slate-900/10 shadow-inner">
+        <div className="relative w-full h-[480px] sm:h-[530px] lg:h-[560px] rounded-2xl overflow-hidden select-none border border-slate-900/10 shadow-inner">
           <EarthScene
             satelliteName={satelliteName || 'METEOR-M2 4'}
             isVisible={Boolean(isSatelliteUp)}
@@ -427,52 +427,6 @@ export function SkyMapCard({
           </svg>
         </div>
       )}
-
-      {/* Look-Angle Telemetry Strip at Bottom (Generous horizontal width, no cramped columns) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-slate-100 text-xs">
-        {/* Target Satellite */}
-        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
-          <span className="text-[10px] text-slate-400 block font-semibold uppercase tracking-wider">
-            Target Angles
-          </span>
-          <div className="text-xs font-mono font-bold text-slate-800 mt-0.5 truncate">
-            {hasTarget ? `El ${target!.elevation.toFixed(1)}° • Az ${target!.azimuth.toFixed(1)}°` : '—'}
-          </div>
-        </div>
-
-        {/* Antenna Aim */}
-        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
-          <span className="text-[10px] text-slate-400 block font-semibold uppercase tracking-wider">
-            Antenna Aim
-          </span>
-          <div className="text-xs font-mono font-bold text-slate-800 mt-0.5 truncate">
-            {hasCurrent ? `El ${current!.elevation.toFixed(1)}° • Az ${current!.azimuth.toFixed(1)}°` : '—'}
-          </div>
-        </div>
-
-        {/* Pointing Offset */}
-        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
-          <span className="text-[10px] text-slate-400 block font-semibold uppercase tracking-wider">
-            Pointing Error
-          </span>
-          <div className="text-xs font-mono font-bold text-sky-700 mt-0.5">
-            {angularError !== null ? `Δ ${angularError.toFixed(1)}°` : '—'}
-          </div>
-        </div>
-
-        {/* Horizon Mask Status */}
-        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
-          <span className="text-[10px] text-slate-400 block font-semibold uppercase tracking-wider">
-            Horizon Status
-          </span>
-          <div className="text-xs font-bold mt-0.5 flex items-center gap-1.5 truncate">
-            <span className={`w-2 h-2 rounded-full ${isSatelliteUp ? 'bg-emerald-500' : 'bg-slate-400'} shrink-0`} />
-            <span className={isSatelliteUp ? 'text-emerald-700' : 'text-slate-600'}>
-              {isSatelliteUp ? 'In View (>10°)' : 'Below 10°'}
-            </span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
