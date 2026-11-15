@@ -176,27 +176,27 @@ export function AntennaPointingCard({
       {/* 2. 2x2 Telemetry Grid (Motor vs Target Look Angles) */}
       <div className="grid grid-cols-2 gap-2">
         {/* Box 1: Motor Azimuth (Physical) */}
-        <div className="bg-slate-50/90 border border-slate-200/80 rounded-xl p-2.5 flex items-center gap-2.5">
+        <div className="bg-slate-50/90 border border-slate-200/80 rounded-xl p-2.5 flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-sky-100/90 border border-sky-200 flex items-center justify-center text-sky-600 shrink-0">
             <Navigation
               className="w-4 h-4 transition-transform duration-500"
               style={{ transform: `rotate(${curAz - 45}deg)` }}
             />
           </div>
-          <div className="min-w-0">
-            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate flex items-center gap-1">
-              <span>Motor Azimuth</span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-tight truncate flex items-center gap-1">
+              <span>Motor Az</span>
               <span className="text-sky-700 font-extrabold">({getCardinal(curAz)})</span>
             </div>
             <div className="text-base sm:text-lg font-extrabold text-slate-900 leading-tight font-mono">
               {curAz.toFixed(1)}°
             </div>
-            <div className="text-[9px] text-slate-400 font-medium">Physical Rotator</div>
+            <div className="text-[9px] text-slate-400 font-medium">Rotator Heading</div>
           </div>
         </div>
 
         {/* Box 2: Motor Elevation (Tilt) */}
-        <div className="bg-slate-50/90 border border-slate-200/80 rounded-xl p-2.5 flex items-center gap-2.5">
+        <div className="bg-slate-50/90 border border-slate-200/80 rounded-xl p-2.5 flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-sky-100/90 border border-sky-200 flex items-center justify-center text-sky-600 shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 20h16" />
@@ -204,26 +204,26 @@ export function AntennaPointingCard({
               <path d="M12 20a8 8 0 0 0-4-7" />
             </svg>
           </div>
-          <div className="min-w-0">
-            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate flex items-center gap-1">
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-tight truncate flex items-center gap-1">
               <span>Motor Tilt</span>
               <span className="text-slate-600 text-[9px] font-semibold">({curEl === 0 ? 'Horiz' : curEl >= 80 ? 'Zenith' : `${curEl.toFixed(0)}°`})</span>
             </div>
             <div className="text-base sm:text-lg font-extrabold text-slate-900 leading-tight font-mono">
               {curEl.toFixed(1)}°
             </div>
-            <div className="text-[9px] text-slate-400 font-medium">0° Horiz → 90° Zen</div>
+            <div className="text-[9px] text-slate-400 font-medium">Physical Pitch</div>
           </div>
         </div>
 
         {/* Box 3: Target Azimuth (METEOR-M2 4) */}
-        <div className="bg-sky-50/60 border border-sky-200/80 rounded-xl p-2.5 flex items-center gap-2.5">
+        <div className="bg-sky-50/60 border border-sky-200/80 rounded-xl p-2.5 flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-sky-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
             <Satellite className="w-4 h-4" />
           </div>
-          <div className="min-w-0">
-            <div className="text-[10px] font-bold text-sky-800 uppercase tracking-wider truncate flex items-center gap-1">
-              <span>Target Azimuth</span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-bold text-sky-800 uppercase tracking-tight truncate flex items-center gap-1">
+              <span>Target Az</span>
               <span className="text-sky-900 font-extrabold">({getCardinal(targetAz)})</span>
             </div>
             <div className="text-base sm:text-lg font-extrabold text-sky-950 leading-tight font-mono">
@@ -234,18 +234,19 @@ export function AntennaPointingCard({
         </div>
 
         {/* Box 4: Target Elevation / AOS */}
-        <div className="bg-sky-50/60 border border-sky-200/80 rounded-xl p-2.5 flex items-center gap-2.5">
+        <div className="bg-sky-50/60 border border-sky-200/80 rounded-xl p-2.5 flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-sky-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
             <Compass className="w-4 h-4" />
           </div>
-          <div className="min-w-0">
-            <div className="text-[10px] font-bold text-sky-800 uppercase tracking-wider truncate flex items-center gap-1">
-              <span>Target El / AOS</span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-bold text-sky-800 uppercase tracking-tight truncate flex items-center gap-1">
+              <span>Target El</span>
+              <span className="text-sky-900 text-[9px] font-bold">(Pk {maxEl.toFixed(0)}°)</span>
             </div>
             <div className="text-base sm:text-lg font-extrabold text-sky-950 leading-tight font-mono">
               {targetEl.toFixed(1)}°
             </div>
-            <div className="text-[9px] text-sky-600 font-medium truncate">Peak: {maxEl.toFixed(0)}° (AOS {aosAz.toFixed(0)}°)</div>
+            <div className="text-[9px] text-sky-600 font-medium truncate">AOS Az: {aosAz.toFixed(0)}°</div>
           </div>
         </div>
       </div>
@@ -374,42 +375,57 @@ export function AntennaPointingCard({
           </div>
         )}
 
-        <div className="grid grid-cols-4 gap-1.5">
-          {/* Aim at Target Satellite */}
+        <div className="space-y-1.5">
+          {/* Row 1: Primary Aim Action */}
           <button
             type="button"
             onClick={handleAimAtSatellite}
             disabled={actionLoading}
-            className="col-span-2 py-1.5 px-2 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-lg font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+            className="w-full py-2 px-3 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-xl font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
             title={`Slew rotator directly to ${targetAz.toFixed(1)}° azimuth`}
           >
             <span>🎯</span>
-            <span className="truncate">{actionLoading ? 'Aiming...' : `Aim (${targetAz.toFixed(0)}°)`}</span>
+            <span className="truncate">{actionLoading ? 'Aiming Motors...' : `Aim at METEOR-M2 4 (${targetAz.toFixed(0)}° Az)`}</span>
           </button>
 
-          {/* Pre-Aim AOS */}
-          <button
-            type="button"
-            onClick={handlePreAimAOS}
-            disabled={actionLoading}
-            className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg font-bold text-xs border border-slate-200 transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-            title={`Pre-aim to next pass AOS azimuth (${aosAz.toFixed(1)}°)`}
-          >
-            <span>⚡</span>
-            <span className="truncate">AOS {aosAz.toFixed(0)}°</span>
-          </button>
+          {/* Row 2: Secondary Shortcuts */}
+          <div className="grid grid-cols-3 gap-1.5">
+            {/* Pre-Aim AOS */}
+            <button
+              type="button"
+              onClick={handlePreAimAOS}
+              disabled={actionLoading}
+              className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg font-bold text-[11px] border border-slate-200 transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+              title={`Pre-aim to next pass AOS azimuth (${aosAz.toFixed(1)}°)`}
+            >
+              <span>⚡</span>
+              <span className="truncate">AOS {aosAz.toFixed(0)}°</span>
+            </button>
 
-          {/* Jog +45° / Home Toggle */}
-          <button
-            type="button"
-            onClick={curAz >= 315 ? handleHome : handleJog45}
-            disabled={actionLoading}
-            className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg font-bold text-xs border border-slate-200 transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-            title={curAz >= 315 ? 'Reset to 0.0°' : 'Jog rotator +45°'}
-          >
-            <span>{curAz >= 315 ? '🏠' : '↻'}</span>
-            <span className="truncate">{curAz >= 315 ? 'Home' : '+45°'}</span>
-          </button>
+            {/* Jog +45° */}
+            <button
+              type="button"
+              onClick={handleJog45}
+              disabled={actionLoading}
+              className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg font-bold text-[11px] border border-slate-200 transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+              title="Jog rotator +45°"
+            >
+              <span>↻</span>
+              <span className="truncate">+45° Jog</span>
+            </button>
+
+            {/* Home / Zero */}
+            <button
+              type="button"
+              onClick={handleHome}
+              disabled={actionLoading}
+              className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg font-bold text-[11px] border border-slate-200 transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+              title="Reset rotator to 0.0°, 0.0°"
+            >
+              <span>🏠</span>
+              <span className="truncate">Zero (0°)</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
