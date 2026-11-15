@@ -230,6 +230,15 @@ void setup() {
 }
 
 void loop() {
+  // Auto-reconnect if Wi-Fi dropped
+  if (WiFi.status() != WL_CONNECTED) {
+    static unsigned long lastReconnectAttempt = 0;
+    if (millis() - lastReconnectAttempt > 4000) {
+      lastReconnectAttempt = millis();
+      WiFi.reconnect();
+    }
+  }
+
   // Handle HTTP client requests instantly
   server.handleClient();
 
