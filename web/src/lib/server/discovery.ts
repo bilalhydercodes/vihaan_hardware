@@ -1,4 +1,5 @@
 import dgram from 'dgram';
+import os from 'os';
 
 export interface DiscoveredDevice {
   online: boolean;
@@ -39,6 +40,69 @@ const state = globalThis.__esp32DiscoveryState || {
 };
 globalThis.__esp32DiscoveryState = state;
 
+let isSweeping = false;
+async function sweepSubnet() {
+  if (state.device.online || isSweeping) return;
+  isSweeping = true;
+  try {
+    const ifaces = os.networkInterfaces();
+    const subnets: string[] = [];
+    for (const name in ifaces) {
+      for (const net of ifaces[name] || []) {
+        if (net.family === 'IPv4' && !net.internal && !name.toLowerCase().includes('vmware') && !name.toLowerCase().includes('virtual')) {
+          const parts = net.address.split('.');
+          if (parts.length === 4) {
+            subnets.push(`${parts[0]}.${parts[1]}.${parts[2]}.`);
+          }
+        }
+      }
+    }
+
+    for (const base of subnets) {
+      if (state.device.online) break;
+      const promises = [];
+      for (let i = 1; i <= 254; i++) {
+        const ip = base + i;
+        promises.push(
+          fetch(`http://${ip}:${DEFAULT_ESP32_PORT}/api/v1/status`, {
+            signal: AbortSignal.timeout(350)
+          })
+            .then(async (r) => {
+              if (r.ok) {
+                const json = await r.json();
+                if (json.success && json.data) {
+                  return { ip, data: json.data };
+                }
+              }
+              return null;
+            })
+            .catch(() => null)
+        );
+      }
+      const results = await Promise.all(promises);
+      const found = results.find(Boolean);
+      if (found) {
+        state.device.online = true;
+        state.device.ip = found.ip;
+        state.device.url = `http://${found.ip}:${DEFAULT_ESP32_PORT}`;
+        state.device.lastSeen = Date.now();
+        state.device.telemetry = {
+          azimuth: typeof found.data.currentAngles?.azimuth === 'number' ? found.data.currentAngles.azimuth : 0,
+          elevation: typeof found.data.currentAngles?.elevation === 'number' ? found.data.currentAngles.elevation : 0,
+          isMoving: found.data.state === 'SLEWING',
+          state: found.data.state || 'IDLE'
+        };
+        console.log(`[Auto-Discovery] 🎯 Discovered ESP32 on new IP via subnet sweep: ${found.ip}:${DEFAULT_ESP32_PORT}`);
+        break;
+      }
+    }
+  } catch {
+    // Ignore sweep errors
+  } finally {
+    isSweeping = false;
+  }
+}
+
 // Active HTTP Poller (guarantees connection even if UDP broadcast is blocked by Windows Firewall)
 async function pollEsp32Http() {
   const targetIp = state.device.ip || DEFAULT_ESP32_IP;
@@ -75,6 +139,10 @@ async function pollEsp32Http() {
     // If lastSeen was over 6 seconds ago, mark offline
     if (Date.now() - state.device.lastSeen > 6000) {
       state.device.online = false;
+    }
+  } finally {
+    if (!state.device.online) {
+      sweepSubnet().catch(() => {});
     }
   }
 }
