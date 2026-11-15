@@ -22,7 +22,7 @@ export default function DashboardPage() {
   // Authentic satellite calculations: Target look angles and orbit propagation are real celestial physics
   const targetAngles = telemetry?.targetAngles || status?.targetAngles || null;
   const currentAngles = telemetry?.currentAngles || status?.currentAngles || { azimuth: 0, elevation: 0 };
-  const satName = status?.satelliteName || telemetry?.satelliteName || 'IRNSS-1B';
+  const satName = status?.satelliteName || telemetry?.satelliteName || 'METEOR-M2 4';
   const isVisible = telemetry?.isVisible ?? status?.isVisible ?? true;
 
   useEffect(() => {
@@ -104,6 +104,8 @@ export default function DashboardPage() {
                 <AntennaPointingCard
                   current={currentAngles}
                   target={targetAngles}
+                  status={status}
+                  pass={pass}
                   isConnected={isConnected}
                 />
               </div>

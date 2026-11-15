@@ -98,7 +98,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
           currentAngles: { azimuth: data.azimuth, elevation: data.elevation },
           targetAngles: target,
           trackingErrorDeg: Math.abs(target.azimuth - data.azimuth),
-          satelliteName: prev?.satelliteName || status?.satelliteName || 'IRNSS-1B',
+          satelliteName: prev?.satelliteName || status?.satelliteName || 'METEOR-M2 4',
           satellitePosition: prev?.satellitePosition,
           isVisible: prev?.isVisible ?? true,
           imu: { pitch: 0, roll: 0, isLevel: true }
@@ -180,11 +180,12 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
 
   // Fetch full status
   const refreshStatus = useCallback(async () => {
-    // If Web Serial USB is active, it handles telemetry directly
-    if (webSerial.isConnected()) {
+    // If Web Serial USB is active, track its connection method
+    const isUsb = webSerial.isConnected();
+    if (isUsb) {
+      setIsUsbConnected(true);
       setConnectionStatus('connected');
       setConnectionMethod('usb');
-      return;
     }
 
     try {
@@ -217,19 +218,26 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
           } catch {}
         }
 
-        setConnectionStatus(isLive ? 'connected' : 'disconnected');
-        setConnectionMethod(isLive ? 'wifi' : 'none');
-        setTelemetry({
-          timestamp: Date.now(),
-          state: data.state || 'IDLE',
-          homed: data.homed ?? true,
-          currentAngles: data.currentAngles || { azimuth: 0, elevation: 0 },
-          targetAngles: data.targetAngles || { azimuth: 0, elevation: 0 },
-          trackingErrorDeg: data.trackingErrorDeg ?? Math.abs((data.targetAngles?.azimuth || 0) - (data.currentAngles?.azimuth || 0)),
-          satelliteName: data.satelliteName || 'METEOR-M2 4',
-          satellitePosition: data.satellitePosition,
-          isVisible: data.isVisible ?? false,
-          imu: data.imu || { pitch: 0, roll: 0, isLevel: true }
+        if (!isUsb) {
+          setConnectionStatus(isLive ? 'connected' : 'disconnected');
+          setConnectionMethod(isLive ? 'wifi' : 'none');
+        }
+        setTelemetry(prev => {
+          const actualAngles = isUsb && prev?.currentAngles
+            ? prev.currentAngles
+            : (data.currentAngles || { azimuth: 0, elevation: 0 });
+          return {
+            timestamp: Date.now(),
+            state: isUsb ? (prev?.state || data.state || 'IDLE') : (data.state || 'IDLE'),
+            homed: data.homed ?? true,
+            currentAngles: actualAngles,
+            targetAngles: data.targetAngles || { azimuth: 0, elevation: 0 },
+            trackingErrorDeg: Math.abs((data.targetAngles?.azimuth || 0) - actualAngles.azimuth),
+            satelliteName: data.satelliteName || 'METEOR-M2 4',
+            satellitePosition: data.satellitePosition,
+            isVisible: data.isVisible ?? false,
+            imu: data.imu || { pitch: 0, roll: 0, isLevel: true }
+          };
         });
         lastPacketTimeRef.current = Date.now();
         setLastPacketTime(Date.now());

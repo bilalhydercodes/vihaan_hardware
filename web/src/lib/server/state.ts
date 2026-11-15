@@ -240,11 +240,13 @@ export function setManualTarget(angles: AngleCoordinates): void {
     elevation: parseFloat(angles.elevation.toFixed(2))
   };
   trackingState = 'SLEWING';
+  updateAntennaRotation('GOTO', { azimuth: angles.azimuth, elevation: angles.elevation });
 }
 
 export function resetHome(): void {
   manualAngles = { azimuth: 0.0, elevation: 0.0 };
   trackingState = 'HOMING';
+  updateAntennaRotation('HOME');
   setTimeout(() => {
     trackingState = 'IDLE';
   }, 2000);

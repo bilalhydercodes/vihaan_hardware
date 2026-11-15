@@ -153,7 +153,19 @@ export async function POST(
 
   let body: any = {};
   try {
-    body = await request.json();
+    const rawText = await request.text();
+    if (rawText && rawText.trim()) {
+      try {
+        body = JSON.parse(rawText);
+      } catch {
+        if (rawText.startsWith('GOTO,')) {
+          const parts = rawText.split(',');
+          body = { azimuth: parseFloat(parts[1]), elevation: parseFloat(parts[2]) };
+        } else {
+          body = { cmd: rawText.trim() };
+        }
+      }
+    }
   } catch {
     // Body may be empty
   }
@@ -195,8 +207,8 @@ export async function POST(
   if (path === 'jog' || path === 'stop' || path === 'home' || path === 'move' || path === 'track') {
     let rawCmd = '';
     if (path === 'move') {
-      const az = typeof body.azimuth === 'number' ? body.azimuth : 0;
-      const el = typeof body.elevation === 'number' ? body.elevation : 0;
+      const az = typeof body.azimuth === 'number' ? body.azimuth : parseFloat(body.azimuth ?? '0');
+      const el = typeof body.elevation === 'number' ? body.elevation : parseFloat(body.elevation ?? '0');
       rawCmd = `GOTO,${az.toFixed(1)},${el.toFixed(1)}`;
       setManualTarget({ azimuth: az, elevation: el });
       updateAntennaRotation(rawCmd, { azimuth: az, elevation: el });
