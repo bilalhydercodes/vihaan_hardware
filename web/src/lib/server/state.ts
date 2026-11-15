@@ -82,6 +82,7 @@ import {
   setAutoTrackingEnabled,
   startPassSimulation,
   stopPassSimulation,
+  syncAutoTrackerPosition,
   METEOR_NORAD_ID
 } from './auto-tracker';
 
@@ -90,6 +91,33 @@ export {
   startPassSimulation,
   stopPassSimulation
 };
+
+export let currentAntennaPosition: AngleCoordinates = { azimuth: 0.0, elevation: 0.0 };
+
+export function updateAntennaRotation(cmd: string, target?: { azimuth: number; elevation: number }): AngleCoordinates {
+  const JOG_DEGREES = (360.0 / 4096.0) * 256; // 22.5°
+
+  if (target) {
+    currentAntennaPosition.azimuth = ((target.azimuth % 360) + 360) % 360;
+    currentAntennaPosition.elevation = Math.max(0, Math.min(90, target.elevation));
+  } else if (cmd === 'AZ_CW') {
+    currentAntennaPosition.azimuth = (currentAntennaPosition.azimuth + JOG_DEGREES) % 360;
+  } else if (cmd === 'AZ_CCW') {
+    currentAntennaPosition.azimuth = (currentAntennaPosition.azimuth - JOG_DEGREES + 360) % 360;
+  } else if (cmd === 'EL_CW' || cmd === 'EL_UP') {
+    currentAntennaPosition.elevation = Math.min(90.0, currentAntennaPosition.elevation + JOG_DEGREES);
+  } else if (cmd === 'EL_CCW' || cmd === 'EL_DOWN') {
+    currentAntennaPosition.elevation = Math.max(0.0, currentAntennaPosition.elevation - JOG_DEGREES);
+  } else if (cmd === 'HOME') {
+    currentAntennaPosition = { azimuth: 0.0, elevation: 0.0 };
+  }
+
+  currentAntennaPosition.azimuth = parseFloat(currentAntennaPosition.azimuth.toFixed(1));
+  currentAntennaPosition.elevation = parseFloat(currentAntennaPosition.elevation.toFixed(1));
+
+  syncAutoTrackerPosition(currentAntennaPosition.azimuth, currentAntennaPosition.elevation);
+  return currentAntennaPosition;
+}
 
 export async function getLiveTrackerStatus(): Promise<TrackerStatus> {
   // If METEOR-M2 4 is active, use comprehensive real-time autonomous tracker status
@@ -166,7 +194,7 @@ export async function getLiveTrackerStatus(): Promise<TrackerStatus> {
   return {
     state: 'IDLE',
     homed: false,
-    currentAngles: { azimuth: 0.0, elevation: 0.0 },
+    currentAngles: currentAntennaPosition,
     targetAngles,
     satelliteName: currentTle.satelliteName,
     noradId: currentTle.noradId,

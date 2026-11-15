@@ -78,6 +78,14 @@ void handleMove() {
 
   cmd.trim();
   if (cmd.length() > 0) {
+    if (cmd.startsWith("GOTO,")) {
+      int c1 = cmd.indexOf(',');
+      int c2 = cmd.indexOf(',', c1 + 1);
+      if (c1 != -1 && c2 != -1) {
+        currentAz = cmd.substring(c1 + 1, c2).toFloat();
+        currentEl = cmd.substring(c2 + 1).toFloat();
+      }
+    }
     Serial2.println(cmd);
     Serial.print("[MOVE -> Arduino] ");
     Serial.println(cmd);
@@ -119,6 +127,11 @@ void handleJog() {
   cmd.toUpperCase();
 
   if (cmd.length() > 0) {
+    const float JOG_DEG = (360.0 / 4096.0) * 256.0;
+    if (cmd == "AZ_CW") { currentAz += JOG_DEG; if (currentAz >= 360.0) currentAz -= 360.0; }
+    else if (cmd == "AZ_CCW") { currentAz -= JOG_DEG; if (currentAz < 0.0) currentAz += 360.0; }
+    else if (cmd == "EL_CW" || cmd == "EL_UP") { currentEl = min(90.0f, currentEl + JOG_DEG); }
+    else if (cmd == "EL_CCW" || cmd == "EL_DOWN") { currentEl = max(0.0f, currentEl - JOG_DEG); }
     Serial2.println(cmd);
     Serial.print("[JOG -> Arduino] ");
     Serial.println(cmd);
@@ -161,6 +174,7 @@ void readArduinoSerial() {
     if (c == '\n' || c == '\r') {
       serial2Buffer.trim();
       if (serial2Buffer.startsWith("STATUS:")) {
+        Serial.println(serial2Buffer); // Forward to USB port for laptop Web Serial
         int c1 = serial2Buffer.indexOf(',');
         int c2 = serial2Buffer.indexOf(',', c1 + 1);
         if (c1 != -1 && c2 != -1) {

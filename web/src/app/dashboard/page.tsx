@@ -21,7 +21,7 @@ export default function DashboardPage() {
 
   // Authentic satellite calculations: Target look angles and orbit propagation are real celestial physics
   const targetAngles = telemetry?.targetAngles || status?.targetAngles || null;
-  const currentAngles = isConnected ? (telemetry?.currentAngles || status?.currentAngles || null) : null;
+  const currentAngles = telemetry?.currentAngles || status?.currentAngles || { azimuth: 0, elevation: 0 };
   const satName = status?.satelliteName || telemetry?.satelliteName || 'IRNSS-1B';
   const isVisible = telemetry?.isVisible ?? status?.isVisible ?? true;
 

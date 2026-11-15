@@ -57,7 +57,7 @@ export function SkyMapCard({
     return { x, y };
   };
 
-  const hasCurrent = isConnected && current !== null && current !== undefined;
+  const hasCurrent = current !== null && current !== undefined;
   const hasTarget = isConnected && target !== null && target !== undefined;
 
   const currentPos = hasCurrent ? toXY(current!.azimuth, current!.elevation) : null;

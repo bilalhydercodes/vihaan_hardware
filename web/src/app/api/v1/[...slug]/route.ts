@@ -13,7 +13,8 @@ import {
   setHardwareUrl,
   getHardwareUrl,
   startPassSimulation,
-  stopPassSimulation
+  stopPassSimulation,
+  updateAntennaRotation
 } from '@/lib/server/state';
 import { sendUdpCommand } from '@/lib/server/discovery';
 import {
@@ -198,13 +199,16 @@ export async function POST(
       const el = typeof body.elevation === 'number' ? body.elevation : 0;
       rawCmd = `GOTO,${az.toFixed(1)},${el.toFixed(1)}`;
       setManualTarget({ azimuth: az, elevation: el });
+      updateAntennaRotation(rawCmd, { azimuth: az, elevation: el });
     } else if (path === 'jog') {
       rawCmd = body.cmd || `${body.axis === 'AZIMUTH' ? 'AZ' : 'EL'}_${body.direction}`;
+      updateAntennaRotation(rawCmd);
     } else if (path === 'stop') {
       rawCmd = 'STOP';
     } else if (path === 'home') {
       rawCmd = 'HOME';
       resetHome();
+      updateAntennaRotation('HOME');
     } else if (path === 'track') {
       const { action } = body;
       setTrackingState(action === 'START' ? 'START' : 'STOP');
@@ -225,20 +229,16 @@ export async function POST(
           signal: AbortSignal.timeout(1500)
         });
         if (resp.ok) {
-          const respJson = await resp.json().catch(() => ({ success: true }));
-          return NextResponse.json(respJson);
+          const respJson = await resp.json().catch(() => null);
+          if (respJson && respJson.success) {
+            return success(await getLiveTrackerStatus());
+          }
         }
       } catch {
         // Dispatched via UDP
       }
     }
 
-    if (path === 'jog') {
-      return success({ message: `Jog ${rawCmd || 'sent'} dispatched to motors` });
-    }
-    if (path === 'stop') {
-      return success({ state: 'IDLE', message: 'Motors stopped' });
-    }
     return success(await getLiveTrackerStatus());
   }
 

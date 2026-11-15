@@ -25,12 +25,8 @@ export function ManualMoveCard({ disabled, disabledReason, onError, onSuccess }:
   const { status, telemetry, refreshStatus, connectionStatus } = useTracker();
   const isConnected = connectionStatus === 'connected';
 
-  const curAz = isConnected
-    ? (telemetry?.currentAngles.azimuth ?? status?.currentAngles.azimuth ?? 0)
-    : null;
-  const curEl = isConnected
-    ? (telemetry?.currentAngles.elevation ?? status?.currentAngles.elevation ?? 0)
-    : null;
+  const curAz = telemetry?.currentAngles.azimuth ?? status?.currentAngles.azimuth ?? 0;
+  const curEl = telemetry?.currentAngles.elevation ?? status?.currentAngles.elevation ?? 0;
 
   const [targetAz, setTargetAz] = useState<number>(180);
   const [targetEl, setTargetEl] = useState<number>(45);

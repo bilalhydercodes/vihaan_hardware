@@ -14,9 +14,9 @@ export function AntennaPointingCard({ current, target, isConnected }: AntennaPoi
   const [showTooltip, setShowTooltip] = useState(false);
 
   // Only display real values if connected and current angles exist
-  const hasAngles = isConnected && current !== null && current !== undefined;
-  const azText = hasAngles ? `${current.azimuth.toFixed(1)}°` : '—';
-  const elText = hasAngles ? `${current.elevation.toFixed(1)}°` : '—';
+  const hasAngles = current !== null && current !== undefined;
+  const azText = hasAngles ? `${current.azimuth.toFixed(1)}°` : '0.0°';
+  const elText = hasAngles ? `${current.elevation.toFixed(1)}°` : '0.0°';
 
   // Helper for cardinal abbreviation
   const getCardinal = (az: number) => {
