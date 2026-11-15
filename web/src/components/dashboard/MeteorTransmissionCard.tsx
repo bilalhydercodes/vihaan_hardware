@@ -83,6 +83,20 @@ export function MeteorTransmissionCard({ className = '', compact = false }: Mete
   const [showTooltip, setShowTooltip] = useState(false);
   const [showConstellation, setShowConstellation] = useState(false);
 
+  // Mounted & Live UTC Reception Clock state (avoids SSR hydration mismatch)
+  const [mounted, setMounted] = useState(false);
+  const [rxTime, setRxTime] = useState('04:11:35');
+
+  useEffect(() => {
+    setMounted(true);
+    const updateTime = () => {
+      setRxTime(new Date().toISOString().substring(11, 19));
+    };
+    updateTime();
+    const clockInterval = setInterval(updateTime, 1000);
+    return () => clearInterval(clockInterval);
+  }, []);
+
   // Live Demodulation Simulation State
   const [isSimulating, setIsSimulating] = useState(true);
   const [scanProgress, setScanProgress] = useState(78.5); // percentage (0 - 100)
@@ -556,7 +570,7 @@ export function MeteorTransmissionCard({ className = '', compact = false }: Mete
           <div className="absolute bottom-3 left-3 bg-slate-950/80 backdrop-blur-md border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-[10px] font-mono pointer-events-none shadow-md">
             <div className="text-emerald-400 font-semibold flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              <span>RX UTC {new Date().toISOString().substring(11, 19)}</span>
+              <span suppressHydrationWarning>RX UTC {mounted ? rxTime : '04:11:35'}</span>
             </div>
             <div className="text-slate-400">DTU Ground Station (28.75°N, 77.12°E)</div>
           </div>
