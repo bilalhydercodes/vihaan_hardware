@@ -212,14 +212,110 @@ export interface SatellitePass {
   isVisibleNow?: boolean;
 }
 
+// Satellite category classification
+export type SatelliteCategory =
+  | 'ALL'
+  | 'NAVIC'
+  | 'WEATHER'
+  | 'STATIONS'
+  | 'GPS'
+  | 'COMMUNICATION'
+  | 'SCIENCE'
+  | 'STARLINK'
+  | 'AMATEUR'
+  | 'LEO'
+  | 'CUSTOM';
+
+// Orbit Regime
+export type SatelliteOrbitType = 'LEO' | 'MEO' | 'GEO' | 'GSO' | 'HEO' | 'SSO';
+
 // Pre-configured satellite item (loaded from TLEs or Celestrak catalog)
 export interface SatelliteInfo {
   name: string;
   noradId: number;
-  group: 'WEATHER' | 'NAVIC' | 'GPS' | 'LEO' | 'CUSTOM';
+  group: SatelliteCategory;
+  category?: string;
+  country?: string;
+  cosparId?: string;
+  launchYear?: number;
+  orbitType?: SatelliteOrbitType;
+  downlinkBand?: string;
+  downlinkFreqMhz?: number;
   tle: {
     line1: string;
     line2: string;
+  };
+}
+
+// Historical orbital tracking position entry
+export interface HistoricalPosition {
+  timestamp: string; // ISO 8601
+  timeAgoMinutes: number;
+  latitude: number;
+  longitude: number;
+  altitudeKm: number;
+  velocityKmS: number;
+  azimuthDeg: number;
+  elevationDeg: number;
+  isAboveHorizon: boolean;
+  type: 'RECONSTRUCTED_SGP4' | 'ARCHIVED_STATION_OBSERVATION';
+  source: string;
+}
+
+// Keplerian orbital mechanics parameters
+export interface KeplerianElements {
+  inclinationDeg: number;
+  eccentricity: number;
+  semiMajorAxisKm: number;
+  apogeeKm: number;
+  perigeeKm: number;
+  periodMinutes: number;
+  raanDeg: number;
+  argOfPerigeeDeg: number;
+  meanAnomalyDeg: number;
+  meanMotionRevPerDay: number;
+  bstar: number;
+  epoch: string;
+  tleAgeHours: number;
+}
+
+// Comprehensive Satellite Intelligence Dossier
+export interface DetailedSatelliteIntelligence {
+  name: string;
+  noradId: number;
+  country: string;
+  category: SatelliteCategory;
+  orbitType: SatelliteOrbitType;
+  cosparId: string | null;
+  launchDate: string | null;
+  downlinkBand: string;
+  downlinkFreqMhz: number | null;
+  currentPosition: {
+    latitude: number;
+    longitude: number;
+    altitudeKm: number;
+    velocityKmS: number;
+    velocityKmH: number;
+  };
+  groundStationLook: {
+    azimuthDeg: number;
+    elevationDeg: number;
+    cardinal: string;
+    slantRangeKm: number;
+    rangeRateKmS: number;
+    dopplerShiftHz: number;
+    isVisible: boolean;
+    isTrackable: boolean;
+    trackingReason: string;
+  };
+  keplerian: KeplerianElements;
+  tle: TleData;
+  history: HistoricalPosition[];
+  upcomingPasses: SatellitePass[];
+  freshness: {
+    fetchedAt: string;
+    source: string;
+    tleAgeHours: number;
   };
 }
 

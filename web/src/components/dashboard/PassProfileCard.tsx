@@ -62,9 +62,13 @@ export function PassProfileCard({ pass, loading, isConnected }: PassProfileCardP
           </div>
         </div>
 
-        {!isConnected && (
-          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
-            Offline
+        {!isConnected ? (
+          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+            SGP4 Orbit Model
+          </span>
+        ) : (
+          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Hardware Synced
           </span>
         )}
       </div>

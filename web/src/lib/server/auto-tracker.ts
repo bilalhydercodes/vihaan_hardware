@@ -343,10 +343,10 @@ export async function getLiveMeteorTrackingStatus(): Promise<TrackerStatus> {
   const prop = propagateSatellite(state.tle.line1, state.tle.line2, trackerConfig.observer, now);
   const dev = getDiscoveredDevice();
 
-  const actualAz = (dev.online && dev.telemetry && dev.telemetry.azimuth !== 0)
+  const actualAz = (dev.online && dev.telemetry && typeof dev.telemetry.azimuth === 'number')
     ? dev.telemetry.azimuth
     : (state.lastSentAz !== -999 ? state.lastSentAz : (dev.telemetry?.azimuth ?? 0.0));
-  const actualEl = (dev.online && dev.telemetry && dev.telemetry.elevation !== 0)
+  const actualEl = (dev.online && dev.telemetry && typeof dev.telemetry.elevation === 'number')
     ? dev.telemetry.elevation
     : (state.lastSentEl !== -999 ? state.lastSentEl : (dev.telemetry?.elevation ?? 0.0));
 

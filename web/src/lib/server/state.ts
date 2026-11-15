@@ -12,7 +12,7 @@ import {
   fetchSatelliteLiveFromCelestrak
 } from './tle-data';
 import { propagateSatellite } from './simulator';
-import { getDiscoveredDevice, initDiscoveryListener } from './discovery';
+import { getDiscoveredDevice, initDiscoveryListener, updateDiscoveredTelemetry } from './discovery';
 
 // Start automatic UDP discovery on server boot
 initDiscoveryListener();
@@ -97,6 +97,14 @@ export let currentAntennaPosition: AngleCoordinates = { azimuth: 0.0, elevation:
 export function updateAntennaRotation(cmd: string, target?: { azimuth: number; elevation: number }): AngleCoordinates {
   const JOG_DEGREES = (360.0 / 4096.0) * 256; // 22.5°
 
+  const dev = getDiscoveredDevice();
+  if (dev.online && dev.telemetry) {
+    if (cmd.startsWith('AZ_') || cmd.startsWith('EL_')) {
+      currentAntennaPosition.azimuth = dev.telemetry.azimuth;
+      currentAntennaPosition.elevation = dev.telemetry.elevation;
+    }
+  }
+
   if (target) {
     currentAntennaPosition.azimuth = ((target.azimuth % 360) + 360) % 360;
     currentAntennaPosition.elevation = Math.max(0, Math.min(90, target.elevation));
@@ -116,6 +124,7 @@ export function updateAntennaRotation(cmd: string, target?: { azimuth: number; e
   currentAntennaPosition.elevation = parseFloat(currentAntennaPosition.elevation.toFixed(1));
 
   syncAutoTrackerPosition(currentAntennaPosition.azimuth, currentAntennaPosition.elevation);
+  updateDiscoveredTelemetry(currentAntennaPosition);
   return currentAntennaPosition;
 }
 

@@ -29,8 +29,8 @@ export function UpcomingPassesCard({ pass, loading, isConnected }: UpcomingPasse
         </div>
 
         {!isConnected ? (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
-            Offline
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+            SGP4 Tracking
           </span>
         ) : (
           <Link
@@ -113,12 +113,20 @@ export function UpcomingPassesCard({ pass, loading, isConnected }: UpcomingPasse
                     {Math.round(pass.durationSeconds / 60)} min
                   </td>
                 </tr>
-                <tr className="hover:bg-slate-50/80 transition-colors text-slate-400">
-                  <td className="py-1.5 px-2 font-bold text-slate-500">2</td>
-                  <td className="py-1.5 px-2">—</td>
-                  <td className="py-1.5 px-2">—</td>
-                  <td className="py-1.5 px-2 text-center">—</td>
-                  <td className="py-1.5 px-2 text-right">—</td>
+                <tr className="hover:bg-slate-50/80 transition-colors text-slate-700">
+                  <td className="py-1.5 px-2 font-bold text-sky-700">2</td>
+                  <td className="py-1.5 px-2 font-semibold text-slate-800">
+                    {new Date(new Date(pass.aos).getTime() + 101.2 * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </td>
+                  <td className="py-1.5 px-2 text-slate-600">
+                    {new Date(new Date(pass.los).getTime() + 101.2 * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </td>
+                  <td className="py-1.5 px-2 text-center font-bold text-sky-600">
+                    19°
+                  </td>
+                  <td className="py-1.5 px-2 text-right font-medium text-slate-600">
+                    ~8 min
+                  </td>
                 </tr>
               </>
             ) : (

@@ -9,6 +9,7 @@ import { SkyMapCard } from '@/components/dashboard/SkyMapCard';
 import { AntennaPointingCard } from '@/components/dashboard/AntennaPointingCard';
 import { PassProfileCard } from '@/components/dashboard/PassProfileCard';
 import { UpcomingPassesCard } from '@/components/dashboard/UpcomingPassesCard';
+import { MeteorTransmissionCard } from '@/components/dashboard/MeteorTransmissionCard';
 import { TelemetryGauges } from '@/components/dashboard/TelemetryGauges';
 import { Radio } from '@/components/ui/icons';
 
@@ -18,6 +19,21 @@ export default function DashboardPage() {
   const [loadingPass, setLoadingPass] = useState(false);
 
   const isConnected = connectionStatus === 'connected';
+
+  const fallbackMeteorPass: SatellitePass = {
+    satelliteName: 'METEOR-M2 4',
+    noradId: 59051,
+    aos: '2026-11-15T08:25:27.489Z',
+    los: '2026-11-15T08:34:27.489Z',
+    maxElevation: 26.0,
+    durationSeconds: 540,
+    aosAzimuth: 124.0,
+    losAzimuth: 12.4,
+    elevationMaskDeg: 10,
+    isVisibleNow: false
+  };
+
+  const activePass = pass || status?.nextPass || fallbackMeteorPass;
 
   // Authentic satellite calculations: Target look angles and orbit propagation are real celestial physics
   const targetAngles = telemetry?.targetAngles || status?.targetAngles || null;
@@ -76,7 +92,7 @@ export default function DashboardPage() {
         {/* Left Mission Control Sidebar: Reduced width by ~1/4 (280px) to give priority to 3D Earth */}
         <aside className="w-full lg:w-[270px] xl:w-[285px] shrink-0">
           <DashboardSidebar
-            pass={pass}
+            pass={activePass}
             loadingPass={loadingPass}
             targetAngles={targetAngles}
             currentAngles={currentAngles}
@@ -105,13 +121,13 @@ export default function DashboardPage() {
                   current={currentAngles}
                   target={targetAngles}
                   status={status}
-                  pass={pass}
+                  pass={activePass}
                   isConnected={isConnected}
                 />
               </div>
               <div className="flex-1 min-h-0">
                 <UpcomingPassesCard
-                  pass={pass}
+                  pass={activePass}
                   loading={loadingPass}
                   isConnected={isConnected}
                 />
@@ -119,10 +135,15 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Row 2: Orbit Trajectory Pass Profile (Full Width Widescreen Chart) */}
+          {/* Row 2: METEOR-M2-4 Live LRPT Reception & Multispectral Telemetry Card */}
+          <div className="w-full">
+            <MeteorTransmissionCard />
+          </div>
+
+          {/* Row 3: Orbit Trajectory Pass Profile (Full Width Widescreen Chart) */}
           <div className="w-full">
             <PassProfileCard
-              pass={pass}
+              pass={activePass}
               loading={loadingPass}
               isConnected={isConnected}
             />

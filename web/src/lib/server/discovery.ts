@@ -156,6 +156,19 @@ export function getDiscoveredDevice(): DiscoveredDevice {
   return state.device;
 }
 
+export function updateDiscoveredTelemetry(angles: { azimuth: number; elevation: number }, isMoving = false, stateStr = 'IDLE') {
+  if (state.device) {
+    if (!state.device.telemetry) {
+      state.device.telemetry = { azimuth: angles.azimuth, elevation: angles.elevation, isMoving, state: stateStr };
+    } else {
+      state.device.telemetry.azimuth = angles.azimuth;
+      state.device.telemetry.elevation = angles.elevation;
+      state.device.telemetry.isMoving = isMoving;
+      state.device.telemetry.state = stateStr;
+    }
+  }
+}
+
 export function sendUdpCommand(cmd: string): boolean {
   const targetIp = state.device.ip || DEFAULT_ESP32_IP;
 
