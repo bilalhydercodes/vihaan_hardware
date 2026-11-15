@@ -46,17 +46,19 @@ export let currentTle: TleData = {
   source: 'CELESTRAK'
 };
 
-// Immediately initiate background fetch for today's live METEOR-M2 4 CelesTrak TLE
-fetchSatelliteLiveFromCelestrak(59051).then(sat => {
-  if (sat) {
-    currentTle.satelliteName = sat.name;
-    currentTle.noradId = sat.noradId;
-    currentTle.line1 = sat.tle.line1;
-    currentTle.line2 = sat.tle.line2;
-    currentTle.updatedAt = new Date().toISOString();
-    currentTle.source = 'CELESTRAK';
-  }
-}).catch(() => {});
+// Initiate background fetch for today's live METEOR-M2 4 CelesTrak TLE at runtime
+if (process.env.NEXT_PHASE !== 'phase-production-build') {
+  fetchSatelliteLiveFromCelestrak(59051).then(sat => {
+    if (sat) {
+      currentTle.satelliteName = sat.name;
+      currentTle.noradId = sat.noradId;
+      currentTle.line1 = sat.tle.line1;
+      currentTle.line2 = sat.tle.line2;
+      currentTle.updatedAt = new Date().toISOString();
+      currentTle.source = 'CELESTRAK';
+    }
+  }).catch(() => {});
+}
 
 let trackingState: 'IDLE' | 'TRACKING' | 'SLEWING' | 'HOMING' = 'IDLE';
 let manualAngles: AngleCoordinates = { azimuth: 0.0, elevation: 0.0 };

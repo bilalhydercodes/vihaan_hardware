@@ -8,7 +8,7 @@ import {
   TimeSyncRequest,
   TimeSyncResponse
 } from '@shared/types/tracker';
-import { trackerApi, getStoredAuthToken, setStoredAuthToken, clearStoredAuthToken } from '@/lib/api';
+import { trackerApi, getStoredAuthToken, setStoredAuthToken, clearStoredAuthToken, getBaseUrl } from '@/lib/api';
 import { decodeTelemetryPacket, setCachedSatelliteName } from '@/lib/decoder';
 import { webSerial } from '@/lib/serial';
 
@@ -143,17 +143,24 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     if (webSerial.isConnected()) {
       return webSerial.sendCommand(cmd);
     }
-    // Direct Wi-Fi fallback to ESP32 on LAN
+    // Route command via standard API route (or custom tracker URL if configured)
     try {
       const endpoint = cmd === 'STOP' ? '/api/v1/stop'
         : cmd === 'HOME' ? '/api/v1/home'
         : cmd.startsWith('GOTO,') ? '/api/v1/move'
         : '/api/v1/jog';
-      const res = await fetch(`http://10.254.214.136:8080${endpoint}`, {
+
+      let body: any = cmd;
+      if (cmd.startsWith('GOTO,')) {
+        const parts = cmd.split(',');
+        body = JSON.stringify({ azimuth: parseFloat(parts[1]), elevation: parseFloat(parts[2]) });
+      }
+
+      const res = await fetch(`${getBaseUrl()}${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: cmd,
-        signal: AbortSignal.timeout(2000)
+        headers: { 'Content-Type': 'application/json' },
+        body: typeof body === 'string' && body.startsWith('{') ? body : JSON.stringify({ cmd }),
+        signal: AbortSignal.timeout(2500)
       });
       return res.ok;
     } catch {
@@ -210,26 +217,22 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
           } catch {}
         }
 
-        setConnectionStatus(isLive ? 'connected' : 'disconnected');
+        setConnectionStatus('connected');
         setConnectionMethod(isLive ? 'wifi' : 'none');
-        if (isLive) {
-          setTelemetry({
-            timestamp: Date.now(),
-            state: data.state,
-            homed: data.homed,
-            currentAngles: data.currentAngles,
-            targetAngles: data.targetAngles,
-            trackingErrorDeg: Math.abs(data.targetAngles.azimuth - data.currentAngles.azimuth),
-            satelliteName: data.satelliteName,
-            satellitePosition: data.satellitePosition,
-            isVisible: data.isVisible,
-            imu: data.imu
-          });
-          lastPacketTimeRef.current = Date.now();
-          setLastPacketTime(Date.now());
-        } else {
-          setTelemetry(null);
-        }
+        setTelemetry({
+          timestamp: Date.now(),
+          state: data.state || 'IDLE',
+          homed: data.homed ?? true,
+          currentAngles: data.currentAngles || { azimuth: 0, elevation: 0 },
+          targetAngles: data.targetAngles || { azimuth: 0, elevation: 0 },
+          trackingErrorDeg: data.trackingErrorDeg ?? Math.abs((data.targetAngles?.azimuth || 0) - (data.currentAngles?.azimuth || 0)),
+          satelliteName: data.satelliteName || 'METEOR-M2 4',
+          satellitePosition: data.satellitePosition,
+          isVisible: data.isVisible ?? false,
+          imu: data.imu || { pitch: 0, roll: 0, isLevel: true }
+        });
+        lastPacketTimeRef.current = Date.now();
+        setLastPacketTime(Date.now());
       }
     } catch {
       // Direct browser fallback when backend API is unreachable or times out

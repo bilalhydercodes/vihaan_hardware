@@ -80,12 +80,15 @@ async function pollEsp32Http() {
 }
 
 export function initDiscoveryListener() {
+  if (process.env.NEXT_PHASE === 'phase-production-build') return;
+
   // 1. Start HTTP Health Poller (every 1.5 seconds)
   if (!state.httpTimer) {
     pollEsp32Http().catch(() => {});
     state.httpTimer = setInterval(() => {
       pollEsp32Http().catch(() => {});
     }, 1500);
+    state.httpTimer.unref?.();
   }
 
   // 2. Start UDP Discovery Listener on port 8888
@@ -93,6 +96,7 @@ export function initDiscoveryListener() {
 
   try {
     const socket = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+    socket.unref?.();
 
     socket.on('error', (err) => {
       console.warn('[Auto-Discovery] UDP socket error:', err.message);

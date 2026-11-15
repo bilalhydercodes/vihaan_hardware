@@ -60,12 +60,15 @@ export function TokenModal() {
     if (tokenInput.trim()) {
       setAuthToken(tokenInput.trim());
     }
-    const cleanUrl = urlInput.trim() || 'http://10.254.214.136:8080';
+    const cleanUrl = urlInput.trim();
+    if (cleanUrl) {
+      setCustomTrackerUrl(cleanUrl);
+    }
     try {
       await fetch('/api/v1/hardware/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: cleanUrl })
+        body: JSON.stringify({ url: cleanUrl || 'http://10.254.214.136:8080' })
       });
     } catch {}
     setShowSavedFeedback(true);

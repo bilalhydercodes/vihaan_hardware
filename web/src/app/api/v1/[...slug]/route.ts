@@ -24,12 +24,22 @@ import {
 } from '@/lib/server/tle-data';
 import { predictNextPass } from '@/lib/server/simulator';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, *',
+  'Access-Control-Max-Age': '86400'
+};
+
 function success(data: any, status = 200) {
   return NextResponse.json({
     success: true,
     data,
     timestamp: new Date().toISOString()
-  }, { status });
+  }, {
+    status,
+    headers: corsHeaders
+  });
 }
 
 function failure(error: string, status = 400) {
@@ -37,7 +47,17 @@ function failure(error: string, status = 400) {
     success: false,
     error,
     timestamp: new Date().toISOString()
-  }, { status });
+  }, {
+    status,
+    headers: corsHeaders
+  });
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders
+  });
 }
 
 export async function GET(

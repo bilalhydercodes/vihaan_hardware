@@ -13,7 +13,7 @@ import { TelemetryGauges } from '@/components/dashboard/TelemetryGauges';
 import { Radio } from '@/components/ui/icons';
 
 export default function DashboardPage() {
-  const { telemetry, status, connectionStatus, setTokenModalOpen } = useTracker();
+  const { telemetry, status, connectionStatus, connectionMethod, setTokenModalOpen } = useTracker();
   const [pass, setPass] = useState<SatellitePass | null>(null);
   const [loadingPass, setLoadingPass] = useState(false);
 
@@ -49,16 +49,16 @@ export default function DashboardPage() {
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-5">
       {/* Offline Hardware Connection Banner */}
-      {!isConnected && (
+      {isConnected && connectionMethod === 'none' && !status?.hardwareConnected && (
         <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-sky-100 rounded-xl text-sky-600 shrink-0">
               <Radio className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-sky-950">Hardware Cable Disconnected</h2>
+              <h2 className="text-sm font-bold text-sky-950">Antenna Rotator Standby</h2>
               <p className="text-xs text-sky-700">
-                Plug your Arduino Uno or ESP32 into your laptop via USB cable and click Connect to stream live antenna angles.
+                Live METEOR-M2-4 orbital tracking is active. Connect your Arduino Uno or ESP32 via USB or Wi-Fi to sync physical motors.
               </p>
             </div>
           </div>
@@ -66,7 +66,7 @@ export default function DashboardPage() {
             onClick={() => setTokenModalOpen(true)}
             className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
           >
-            🔌 Connect USB Hardware
+            🔌 Connect Motors
           </button>
         </div>
       )}

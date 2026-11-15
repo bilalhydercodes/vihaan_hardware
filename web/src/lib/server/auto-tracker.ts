@@ -271,6 +271,7 @@ export async function runAutoTrackingCycle(): Promise<void> {
 
 // Start continuous tracking daemon
 export function startAutoTrackingEngine(): void {
+  if (process.env.NEXT_PHASE === 'phase-production-build') return;
   if (state.intervalTimer) return; // Already running
 
   console.log('[Auto-Tracker] 🚀 Starting METEOR-M2-4 Real-Time Autonomous Tracking Engine...');
@@ -282,6 +283,7 @@ export function startAutoTrackingEngine(): void {
       console.warn('[Auto-Tracker] Error in tracking cycle:', err.message);
     });
   }, 1000);
+  state.intervalTimer.unref?.();
 }
 
 // Auto-start engine on server boot
