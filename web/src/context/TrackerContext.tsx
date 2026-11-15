@@ -217,22 +217,26 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
           } catch {}
         }
 
-        setConnectionStatus('connected');
+        setConnectionStatus(isLive ? 'connected' : 'disconnected');
         setConnectionMethod(isLive ? 'wifi' : 'none');
-        setTelemetry({
-          timestamp: Date.now(),
-          state: data.state || 'IDLE',
-          homed: data.homed ?? true,
-          currentAngles: data.currentAngles || { azimuth: 0, elevation: 0 },
-          targetAngles: data.targetAngles || { azimuth: 0, elevation: 0 },
-          trackingErrorDeg: data.trackingErrorDeg ?? Math.abs((data.targetAngles?.azimuth || 0) - (data.currentAngles?.azimuth || 0)),
-          satelliteName: data.satelliteName || 'METEOR-M2 4',
-          satellitePosition: data.satellitePosition,
-          isVisible: data.isVisible ?? false,
-          imu: data.imu || { pitch: 0, roll: 0, isLevel: true }
-        });
-        lastPacketTimeRef.current = Date.now();
-        setLastPacketTime(Date.now());
+        if (isLive) {
+          setTelemetry({
+            timestamp: Date.now(),
+            state: data.state || 'IDLE',
+            homed: data.homed ?? true,
+            currentAngles: data.currentAngles || { azimuth: 0, elevation: 0 },
+            targetAngles: data.targetAngles || { azimuth: 0, elevation: 0 },
+            trackingErrorDeg: data.trackingErrorDeg ?? Math.abs((data.targetAngles?.azimuth || 0) - (data.currentAngles?.azimuth || 0)),
+            satelliteName: data.satelliteName || 'METEOR-M2 4',
+            satellitePosition: data.satellitePosition,
+            isVisible: data.isVisible ?? false,
+            imu: data.imu || { pitch: 0, roll: 0, isLevel: true }
+          });
+          lastPacketTimeRef.current = Date.now();
+          setLastPacketTime(Date.now());
+        } else {
+          setTelemetry(null);
+        }
       }
     } catch {
       // Direct browser fallback when backend API is unreachable or times out

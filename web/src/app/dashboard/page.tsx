@@ -49,7 +49,7 @@ export default function DashboardPage() {
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-5">
       {/* Offline Hardware Connection Banner */}
-      {isConnected && connectionMethod === 'none' && !status?.hardwareConnected && (
+      {!isConnected && (
         <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-sky-100 rounded-xl text-sky-600 shrink-0">
